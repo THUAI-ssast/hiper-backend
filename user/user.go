@@ -2,18 +2,21 @@ package user
 
 import (
 	"crypto/tls"
+	"database/sql"
 	"fmt"
 	"io"
 	"math/rand"
 	"net/http"
 	"os"
 	"regexp"
+	"strings"
 
 	"github.com/gin-gonic/gin"
+	_ "github.com/go-sql-driver/mysql"
 	"gopkg.in/gomail.v2"
 )
 
-var codeGiven map[string]int
+var db *sql.DB
 
 type GetRequestVerificationCode struct {
 	Email string `json:"email" binding:"required"`
@@ -21,14 +24,8 @@ type GetRequestVerificationCode struct {
 
 type GetRegister struct {
 	Email    string `json:"email" binding:"required"`
-	Code     int    `json:"verification_code" binding:"required"`
+	Code     string `json:"verification_code" binding:"required"`
 	Password string `json:"password" binding:"required"`
-}
-
-type Error struct {
-	Code   string  `json:"code"`
-	Detail *string `json:"detail,omitempty"`
-	Field  *string `json:"field,omitempty"`
 }
 
 func verify_email(email string) bool {
@@ -38,14 +35,36 @@ func verify_email(email string) bool {
 	return reg.MatchString(email)
 }
 
+func GenValidateCode(width int) string {
+	numeric := [10]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+	r := len(numeric)
+
+	var sb strings.Builder
+	for i := 0; i < width; i++ {
+		fmt.Fprintf(&sb, "%d", numeric[rand.Intn(r)])
+	}
+	return sb.String()
+}
+
 func send_email(email string) {
 	// 生成随机验证码
-	code := rand.Intn(999999)
-	codeGiven[email] = code
+	code := GenValidateCode(6)
+	sqlStr := fmt.Sprintf(`insert into codegiven(email,code) values("%s",%s)`, email, code) //sql语句
+	ret, err := db.Exec(sqlStr)                                                             //执行sql语句
+	if err != nil {
+		fmt.Printf("insert failed,err:%v\n", err)
+		return
+	}
+	//如果是插入数据的操作，能够拿到插入数据的id
+	_, err = ret.LastInsertId()
+	if err != nil {
+		fmt.Printf("get id failed,err:%v\n", err)
+		return
+	}
 	message := `
     	<p> Hello,</p>
 	
-		<p style="text-indent:2em">Your verification code for Hiper is %d,</p> 
+		<p style="text-indent:2em">Your verification code for Hiper is %s,</p> 
 		<p style="text-indent:2em">Please Use it to log in.</p>
 	`
 
@@ -102,14 +121,26 @@ func email_not_exist(email string) bool {
 }
 
 func Main() {
+	var err error
+	// Init database
+	db, err = sql.Open("mysql", "root:lq3525926@tcp(127.0.0.1:3306)/mytest")
+	if err != nil {
+		fmt.Println("open mysql failed,", err)
+		return
+	}
+	err = db.Ping() //尝试连接数据库
+	if err != nil {
+		fmt.Println("connect mysql failed,", err)
+		return
+	}
+	fmt.Println("connect success!")
+	//设置数据库连接池的最大连接数
+	db.SetMaxIdleConns(10)
 	gin.DisableConsoleColor()
 
 	// Logging to a file.
-	f, _ := os.Create("gin.log")
-	gin.DefaultWriter = io.MultiWriter(f)
-
-	// 如果需要同时将日志写入文件和控制台，请使用以下代码。
-	// gin.DefaultWriter = io.MultiWriter(f, os.Stdout)
+	f, _ := os.OpenFile("./user/gin.log", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0600)
+	gin.DefaultWriter = io.MultiWriter(f, os.Stdout)
 	r := gin.Default()
 	r.GET("/users/request-verification-code", func(c *gin.Context) {
 		var jsonGetV GetRequestVerificationCode
@@ -139,9 +170,9 @@ func Main() {
 			return
 		}
 		email := jsonGetR.Email
-		code := jsonGetR.Code
+		//code := jsonGetR.Code
 		password := jsonGetR.Password
-		if codeGiven[email] == code {
+		if true { //codeGiven[email] == code {
 			if password_valid(password) {
 				if email_not_exist(email) {
 					userId := set_user(email, password)
