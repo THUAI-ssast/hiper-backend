@@ -108,12 +108,25 @@ func send_email(email string) {
 	}
 }
 
+func code_match(code string, email string) bool {
+	//1.查询单挑记录的sql语句  ?是参数
+	sqlStr := "select email,code from user where email=?;"
+	//2.执行
+	rowObj := db.QueryRow(sqlStr, email) //从连接池里取一个连接出来去数据库查询单挑记录
+	var codeGet string
+	rowObj.Scan(&email, &codeGet)
+	return code == codeGet
+}
+
 func set_user(email string, password string) int {
 	return 1 //TODO: set user in database
 }
 
-func password_valid(password string) bool {
-	return true //TODO: check password valid
+func verify_password(password string) bool {
+	expr := `^[0-9A-Za-z!@#$%^&*]{8,16}$`
+	reg := regexp.MustCompile(expr)
+	m := reg.MatchString(password)
+	return m
 }
 
 func email_not_exist(email string) bool {
@@ -170,10 +183,10 @@ func Main() {
 			return
 		}
 		email := jsonGetR.Email
-		//code := jsonGetR.Code
+		code := jsonGetR.Code
 		password := jsonGetR.Password
-		if true { //codeGiven[email] == code {
-			if password_valid(password) {
+		if code_match(code, email) {
+			if verify_password(password) {
 				if email_not_exist(email) {
 					userId := set_user(email, password)
 					c.JSON(200, gin.H{

@@ -1,8 +1,12 @@
 package main
 
 import (
-	"hiper-backend/api"
+	"flag"
 	"hiper-backend/config"
+	"hiper-backend/contest"
+	"hiper-backend/game"
+	"hiper-backend/user"
+	"hiper-backend/web/api"
 )
 
 func main() {
@@ -10,4 +14,16 @@ func main() {
 	config.InitConfig()
 
 	api.ApiListenHttp()
+
+	var module string
+	flag.StringVar(&module, "module", "", "assign run module")
+	flag.Parse()
+	switch module {
+	case "game":
+		game.Main()
+	case "user":
+		user.Main()
+	case "contest":
+		contest.Main()
+	}
 }
