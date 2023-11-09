@@ -4,14 +4,16 @@ import (
 	"fmt"
 	"hiper-backend/config"
 	"hiper-backend/mail"
+	"hiper-backend/utils"
 
-	// "hiper-backend/utils"
 	"math/rand"
+	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -42,6 +44,278 @@ type GetLogin struct {
 	Email    string `json:"email"`
 	Username string `json:"username"`
 	Password string `json:"password" binding:"required"`
+}
+
+func request_verification_code(c *gin.Context) {
+	var jsonGetV GetRequestVerificationCode
+	if err := c.ShouldBindJSON(&jsonGetV); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	email := jsonGetV.Email
+	if verify_email(email) {
+		send_email(email)
+		c.JSON(200, gin.H{})
+	} else {
+		c.JSON(422, gin.H{
+			"errors": []gin.H{
+				{
+					"code":  "invalid",
+					"field": "email",
+				},
+			},
+		})
+	}
+}
+
+func register_user(c *gin.Context) {
+	var jsonGetR GetRegister
+	if err := c.ShouldBindJSON(&jsonGetR); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	email := jsonGetR.Email
+	code := jsonGetR.Code
+	password := jsonGetR.Password
+	username := jsonGetR.Username
+	if !code_match(code, email) {
+		c.JSON(422, gin.H{
+			"errors": []gin.H{
+				{
+					"code":  "invalid",
+					"field": "verification_code",
+				},
+			},
+		})
+	} else if !verify_password(password) {
+		c.JSON(422, gin.H{
+			"errors": []gin.H{
+				{
+					"code":  "invalid",
+					"field": "password",
+				},
+			},
+		})
+	} else if email_exist_codegiven(email) {
+		c.JSON(422, gin.H{
+			"errors": []gin.H{
+				{
+					"code":  "already_exists",
+					"field": "email",
+				},
+			},
+		})
+	} else if username_exist_user(username) {
+		c.JSON(422, gin.H{
+			"errors": []gin.H{
+				{
+					"code":  "already_exists",
+					"field": "username",
+				},
+			},
+		})
+	} else if email_exist_user(email) {
+		c.JSON(422, gin.H{
+			"errors": []gin.H{
+				{
+					"code":  "already_exists",
+					"field": "email",
+				},
+			},
+		})
+	} else {
+		userId := set_user(email, password, username)
+		if userId == -1 {
+			c.JSON(422, gin.H{
+				"errors": []gin.H{
+					{
+						"code":   "missing_field",
+						"field":  "email",
+						"detail": "Delete from codegiven failed",
+					},
+				},
+			})
+		} else {
+			c.JSON(200, gin.H{
+				"user_id": userId,
+			})
+		}
+	}
+}
+
+func reset_email(c *gin.Context) {
+	var jsonGetRE GetResetEmail
+	if err := c.ShouldBindJSON(&jsonGetRE); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	email := jsonGetRE.Email
+	code := jsonGetRE.Code
+	newEmail := jsonGetRE.NewEmail
+	if !email_exist_codegiven(email) {
+		c.JSON(422, gin.H{
+			"errors": []gin.H{
+				{
+					"code":  "invalid",
+					"field": "email",
+				},
+			},
+		})
+	} else if !verify_email(newEmail) {
+		c.JSON(422, gin.H{
+			"errors": []gin.H{
+				{
+					"code":  "invalid",
+					"field": "new_email",
+				},
+			},
+		})
+	} else if !code_match(code, email) {
+		c.JSON(422, gin.H{
+			"errors": []gin.H{
+				{
+					"code":  "invalid",
+					"field": "verification_code",
+				},
+			},
+		})
+	} else if email_exist_codegiven(newEmail) {
+		c.JSON(422, gin.H{
+			"errors": []gin.H{
+				{
+					"code":  "already_exists",
+					"field": "new_email",
+				},
+			},
+		})
+	} else {
+		update_email(email, newEmail)
+		c.JSON(200, gin.H{})
+	}
+}
+
+func reset_password(c *gin.Context) {
+	var jsonGetRP GetResetPassword
+	if err := c.ShouldBindJSON(&jsonGetRP); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	email := jsonGetRP.Email
+	code := jsonGetRP.Code
+	password := jsonGetRP.Password
+	if !email_exist_codegiven(email) {
+		c.JSON(422, gin.H{
+			"errors": []gin.H{
+				{
+					"code":  "invalid",
+					"field": "email",
+				},
+			},
+		})
+	} else if !verify_password(password) {
+		c.JSON(422, gin.H{
+			"errors": []gin.H{
+				{
+					"code":  "invalid",
+					"field": "password",
+				},
+			},
+		})
+	} else if !code_match(code, email) {
+		c.JSON(422, gin.H{
+			"errors": []gin.H{
+				{
+					"code":  "invalid",
+					"field": "verification_code",
+				},
+			},
+		})
+	} else {
+		update_password(email, password)
+		c.JSON(200, gin.H{})
+	}
+}
+
+func login(c *gin.Context) {
+	var jsonGetL GetLogin
+	if err := c.ShouldBindJSON(&jsonGetL); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	email := jsonGetL.Email
+	username := jsonGetL.Username
+	password := jsonGetL.Password
+	if username == "" && email == "" {
+		c.JSON(422, gin.H{
+			"errors": []gin.H{
+				{
+					"code":  "missing_field",
+					"field": "email and username",
+				},
+			},
+		})
+	} else if username != "" {
+		if !username_exist_user(username) {
+			c.JSON(422, gin.H{
+				"errors": []gin.H{
+					{
+						"code":  "invalid",
+						"field": "username",
+					},
+				},
+			})
+		} else {
+			userId, valid := password_match_username(username, password)
+			if !valid {
+				c.JSON(422, gin.H{
+					"errors": []gin.H{
+						{
+							"code":  "invalid",
+							"field": "password",
+						},
+					},
+				})
+			} else {
+				token, _ := utils.GenToken((int64)(userId))
+				c.JSON(200, gin.H{
+					"access_token": token,
+				})
+			}
+		}
+	} else {
+		if !email_exist_user(email) {
+			c.JSON(422, gin.H{
+				"errors": []gin.H{
+					{
+						"code":  "invalid",
+						"field": "email",
+					},
+				},
+			})
+		} else {
+			userId, valid := password_match_email(email, password)
+			if !valid {
+				c.JSON(422, gin.H{
+					"errors": []gin.H{
+						{
+							"code":  "invalid",
+							"field": "password",
+						},
+					},
+				})
+			} else {
+				token, _ := utils.GenToken((int64)(userId))
+				c.JSON(200, gin.H{
+					"access_token": token,
+				})
+			}
+		}
+	}
+}
+
+func logout(c *gin.Context) {
+	token := c.Request.Header["Authorization"][0]
+	config.Rdb.SAdd(config.Ctx, "token_blacklist", token[7:])
 }
 
 func verify_email(email string) bool {
@@ -166,25 +440,35 @@ func update_password(email string, password string) {
 }
 
 func email_exist_user(email string) bool {
-	return true
+	sqlStr := fmt.Sprintf("select * from user where email='%s';", email)
+	_, ok := config.Query(sqlStr)
+	return ok
 }
 
 func username_exist_user(username string) bool {
-	return true
+	sqlStr := fmt.Sprintf("select * from user where username='%s';", username)
+	_, ok := config.Query(sqlStr)
+	return ok
 }
 
-func password_match_username(username string, password string) bool {
-	return true
+func password_match_username(username string, password string) (int, bool) {
+	sqlStr := fmt.Sprintf("select * from user where username='%s';", username)
+	rst, ok := config.Query(sqlStr)
+	if ok {
+		id, _ := strconv.Atoi(rst[0]["user_id"])
+		return id, rst[0]["password"] == password
+	} else {
+		return 0, false
+	}
 }
 
-func password_match_email(email string, password string) bool {
-	return true
-}
-
-func get_userId_email(email string) int {
-	return 1
-}
-
-func get_userId_username(username string) int {
-	return 1
+func password_match_email(email string, password string) (int, bool) {
+	sqlStr := fmt.Sprintf("select * from user where email='%s';", email)
+	rst, ok := config.Query(sqlStr)
+	if ok {
+		id, _ := strconv.Atoi(rst[0]["user_id"])
+		return id, rst[0]["password"] == password
+	} else {
+		return 0, false
+	}
 }

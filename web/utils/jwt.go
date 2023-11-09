@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"hiper-backend/config"
+
 	"github.com/golang-jwt/jwt"
 )
 
@@ -50,8 +52,19 @@ func ParseToken(tokenString string) (*MyClaims, error) {
 	}
 	fmt.Println(token)
 	// 校验token
-	if token.Valid {
+	if token.Valid && !TokenInBlacklist(tokenString) {
 		return mc, nil
 	}
 	return nil, errors.New("invalid token")
+}
+
+func TokenInBlacklist(tokenString string) bool {
+	exists, err := config.Rdb.SIsMember(config.Ctx, "token_blacklist", tokenString).Result()
+	if err != nil {
+		panic(err)
+	}
+	if exists {
+		return true
+	}
+	return false
 }

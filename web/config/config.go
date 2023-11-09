@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"database/sql"
 	"io"
 	"os"
@@ -8,17 +9,37 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
 )
 
 var Db *sql.DB
 
+var Ctx = context.Background()
+var Rdb *redis.Client
+
 // InitConfig initializes the configuration of the application
 func InitConfig() {
 	initDB()
+	initRedis()
 
 	//打印输出信息到文件
 	f, _ := os.OpenFile("./api/gin.log", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0600)
 	gin.DefaultWriter = io.MultiWriter(f, os.Stdout)
+}
+
+func initRedis() bool {
+	Rdb = redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       0,
+	})
+
+	_, err := Rdb.Ping(Ctx).Result()
+	if err != nil {
+		fmt.Printf("连接redis出错，错误信息：%v", err)
+		return false
+	}
+	return true
 }
 
 func initDB() bool { //连接到MySQL
@@ -35,7 +56,7 @@ func initDB() bool { //连接到MySQL
 		return false
 	}
 	//设置数据库连接池的最大连接数
-	Db.SetMaxIdleConns(10)
+	Db.SetMaxIdleConns(100)
 	return true
 }
 
