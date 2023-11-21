@@ -1,0 +1,39 @@
+# environment variables first, then config file
+
+is_debug = true
+
+[db]
+
+#请先创建数据库，sql语句请见web/model下的各sql文件
+
+username = "root"
+password = "lq3525926"
+ip = "127.0.0.1"
+port = "3306"
+dbname = "mytest"
+maxconnect = 100
+
+[redis]
+
+#请先创建数据库
+
+ip = "localhost"
+port = 6379
+password = ""
+db = 0
+
+[net]
+
+#请使用开发文档中的web-获取ssl证书来获得证书并将本地路径填入config中
+
+certpath = "D:/Desktop/杂项plus/localhost.pem"
+keypath = "D:/Desktop/杂项plus/localhost.key"
+
+[mail]
+
+#请使用web/mail/mail.go中的注释来更改host和post，并自行查询邮箱的验证密码。
+
+host = "smtp.qq.com"
+port = 25
+username = "2975587905@qq.com"
+password = "vqbhftsgfpsmdfed"
