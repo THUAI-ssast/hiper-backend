@@ -1,9 +1,13 @@
 package config
 
 import (
+	"log"
 	"strings"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
+
+	"hiper-backend/user"
 )
 
 // InitConfig initializes the configuration of the application
@@ -19,4 +23,13 @@ func InitConfig() {
 	viper.ReadInConfig()
 
 	viper.WatchConfig()
+	viper.OnConfigChange(handleConfigChange)
+}
+
+// handleConfigChange handles changes in the configuration
+func handleConfigChange(e fsnotify.Event) {
+	log.Println("Config file changed:", e.Name)
+	if viper.IsSet("superadmin.password") {
+		user.UpsertSuperAdmin()
+	}
 }
