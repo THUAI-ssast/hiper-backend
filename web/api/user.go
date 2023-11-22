@@ -557,14 +557,8 @@ func send_email(email string) {
 	timeUnix := time.Now().Unix()
 	_, valid := model.SelectMySql("codegiven", map[string]interface{}{"email": email})
 	if !valid {
-		ret, valid := model.InsertMySql("codegiven", map[string]interface{}{"email": email, "code": code, "time": timeUnix})
+		_, valid := model.InsertMySql("codegiven", map[string]interface{}{"email": email, "code": code, "time": timeUnix})
 		if !valid {
-			return
-		}
-		//如果是插入数据的操作，能够拿到插入数据的id
-		_, err := ret.LastInsertId()
-		if err != nil {
-			fmt.Printf("get id failed,err:%v\n", err)
 			return
 		}
 	} else {
@@ -593,18 +587,12 @@ func set_user(email string, password string, username string) int {
 		return -1
 	}
 
-	ret, valid := model.InsertMySql("user", map[string]interface{}{"email": email, "password": password, "username": username})
+	id, valid := model.InsertMySql("user", map[string]interface{}{"email": email, "password": password, "username": username})
 	if !valid {
 		return -1
 	}
-	//如果是插入数据的操作，能够拿到插入数据的id
-	id, err := ret.LastInsertId()
-	if err != nil {
-		fmt.Printf("get id failed,err:%v\n", err)
-		return -1
-	}
 
-	return (int)(id)
+	return id
 }
 
 func isValidURL(urlStr string) bool {

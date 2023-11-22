@@ -66,6 +66,15 @@ func ApiListenHttp() {
 			author_id := c.Param("user_id")
 			revoke_creation_permission(c, author_id)
 		})
+
+		authorized.POST("/api/v1/games", func(c *gin.Context) {
+			create_game(c)
+		})
+
+		authorized.POST("/api/v1/games/:id/fork", func(c *gin.Context) {
+			game_id := c.Param("id")
+			fork_game(c, game_id)
+		})
 	}
 	//HTTP server
 	//r.Run(":8080")

@@ -2,6 +2,7 @@ package model
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -91,7 +92,7 @@ func SelectMySql(tableName string, conditions map[string]interface{}) ([]map[str
 	return query(SQL, args...)
 }
 
-func InsertMySql(tableName string, values map[string]interface{}) (sql.Result, bool) { //sql.Result为了获得id
+func InsertMySql(tableName string, values map[string]interface{}) (int, bool) { //id,valid
 	var args []interface{}
 	columns := make([]string, 0, len(values))
 	placeholders := make([]string, 0, len(values))
@@ -104,9 +105,14 @@ func InsertMySql(tableName string, values map[string]interface{}) (sql.Result, b
 	ret, err := db.Exec(SQL, args...)
 	if err != nil {
 		fmt.Printf("insert failed, err: %v\n", err)
-		return nil, false
+		return 0, false
 	}
-	return ret, true
+	id, err := ret.LastInsertId()
+	if err != nil {
+		fmt.Printf("insert failed, err: %v\n", err)
+		return 0, false
+	}
+	return (int)(id), true
 }
 
 func UpdateMySQL(tableName string, values map[string]interface{}, conditions map[string]interface{}) bool {
@@ -147,4 +153,56 @@ func DeleteMySQL(tableName string, conditions map[string]interface{}) (sql.Resul
 		return nil, false
 	}
 	return ret, true
+}
+
+func AppendToJSONArrayInMySQL(tableName string, arrayField string, value interface{}, conditions map[string]interface{}) bool {
+	var args []interface{}
+	args = append(args, value)
+	whereParts := make([]string, 0, len(conditions))
+	for k, v := range conditions {
+		whereParts = append(whereParts, fmt.Sprintf("%s = ?", k))
+		args = append(args, v)
+	}
+	// Check if the current value of the JSON field is "".
+	currentValue, ok := SelectMySql(tableName, conditions)
+	if !ok || len(currentValue) == 0 || currentValue[0][arrayField] == "" {
+		// If the current value is "", set it to an JSON array.
+		sqlStr := fmt.Sprintf("UPDATE %s SET %s = JSON_ARRAY(?) WHERE %s", tableName, arrayField, strings.Join(whereParts, " AND "))
+		_, err := db.Exec(sqlStr, args...)
+		if err != nil {
+			fmt.Printf("update failed, err: %v\n", err)
+			return false
+		}
+		return true
+	} else {
+		sqlStr := fmt.Sprintf("UPDATE %s SET %s = JSON_ARRAY_APPEND(%s, '$', ?) WHERE %s", tableName, arrayField, arrayField, strings.Join(whereParts, " AND "))
+		_, err := db.Exec(sqlStr, args...)
+		if err != nil {
+			fmt.Printf("update failed, err: %v\n", err)
+			return false
+		}
+		return true
+	}
+}
+
+func SelectAndParseJSONArray(tableName string, conditions map[string]interface{}, jsonField string) ([]interface{}, bool) {
+	results, ok := SelectMySql(tableName, conditions)
+	if !ok || len(results) == 0 {
+		return nil, false
+	}
+	jsonStr, ok := results[0][jsonField]
+	if !ok {
+		return nil, false
+	}
+	if jsonStr == "" {
+		// If the value is "", return an empty array.
+		return []interface{}{}, true
+	}
+	var jsonArray []interface{}
+	err := json.Unmarshal([]byte(jsonStr), &jsonArray)
+	if err != nil {
+		fmt.Printf("json unmarshal failed, err: %v\n", err)
+		return nil, false
+	}
+	return jsonArray, true
 }
