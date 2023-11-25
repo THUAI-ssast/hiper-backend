@@ -1,11 +1,24 @@
 package model
 
-// TODO: add more fields
-type VerificationCode struct {
+import (
+	"context"
+	"time"
+)
+
+var ctx = context.Background()
+
+func SaveVerificationCode(code string, email string, expireInMinutes int) error {
+	err := Rdb.Set(ctx, email, code, time.Duration(expireInMinutes)*time.Minute).Err()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-// TODO
-func SaveVerificationCode(code string, email string, expireInMinutes int) error {
-	// 保存验证码到 redis，设置过期时间
-	return nil
+func GetVerificationCode(email string) (string, error) {
+	code, err := Rdb.Get(ctx, email).Result()
+	if err != nil {
+		return "", err
+	}
+	return code, nil
 }

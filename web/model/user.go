@@ -67,6 +67,10 @@ func UpdateUserById(id uint, updates map[string]interface{}) error {
 	return updateUser(map[string]interface{}{"id": id}, updates)
 }
 
+func UpdateUserByEmail(email string, updates map[string]interface{}) error {
+	return updateUser(map[string]interface{}{"email": email}, updates)
+}
+
 func updateUser(condition map[string]interface{}, updates map[string]interface{}) error {
 	return db.Model(&User{}).Where(condition).Updates(updates).Error
 }
