@@ -1,0 +1,57 @@
+version: '3'
+services:
+  web:
+    build: web
+    depends_on:
+      - db
+      - redis
+    restart: always
+    volumes:
+      - hiper_data:/var/hiper
+    ports:
+      - "8080:8080"
+    networks:
+      - hiper
+
+  db:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: hiper
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: hiper
+    networks:
+      - hiper
+    restart: always
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:latest
+    networks:
+      - hiper
+    restart: always
+    volumes:
+      - redis_data:/data
+
+  # TODO: worker service hasn't been implemented yet
+  # workers:
+  #   build: worker
+  #   depends_on:
+  #     - db
+  #     - redis
+  #   deploy:
+  #     replicas: 2
+  #   networks:
+  #     - hiper
+  #   privileged: true
+  #   restart: always
+  #   volumes:
+  #     - hiper_data:/var/hiper
+
+networks:
+  hiper:
+
+volumes:
+  hiper_data:
+  db_data:
+  redis_data:
