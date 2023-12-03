@@ -13,17 +13,16 @@ type Permissions struct {
 
 type User struct {
 	gorm.Model
-	AvatarURL          string
-	Bio                string
-	ContestsRegistered []Contest `gorm:"many2many:contest_registrations;"`
-	Department         string
-	Email              string `gorm:"uniqueIndex,not null"`
-	Name               string
-	Nickname           string      `gorm:"index"`
-	Password           []byte      `gorm:"not null"`
-	Permissions        Permissions `gorm:"embedded"`
-	School             string
-	Username           string `gorm:"uniqueIndex,not null"`
+	AvatarURL   string
+	Bio         string
+	Department  string
+	Email       string `gorm:"uniqueIndex,not null"`
+	Name        string
+	Nickname    string      `gorm:"index"`
+	Password    []byte      `gorm:"not null"`
+	Permissions Permissions `gorm:"embedded"`
+	School      string
+	Username    string `gorm:"uniqueIndex,not null"`
 }
 
 func CreateUser(user User) error {
