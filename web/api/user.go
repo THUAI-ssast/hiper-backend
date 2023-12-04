@@ -4,6 +4,7 @@ import (
 	"hiper-backend/mail"
 	"hiper-backend/model"
 	"hiper-backend/user"
+	"strconv"
 
 	"net/http"
 
@@ -77,7 +78,7 @@ func registerUser(c *gin.Context) {
 			Field: "username",
 		}}})
 	} else {
-		model.UpsertUser(model.User{
+		model.CreateUser(model.User{
 			Email:    email,
 			Password: user.HashPassword(password),
 			Username: username,
@@ -86,7 +87,7 @@ func registerUser(c *gin.Context) {
 		if err != nil {
 			c.JSON(422, gin.H{"errors": []ErrorFor422{{
 				Code:  Invalid,
-				Field: "user upsert failed",
+				Field: "user create failed",
 			}}})
 		}
 		c.JSON(200, gin.H{
@@ -108,6 +109,13 @@ func resetEmail(c *gin.Context) {
 	email := input.Email
 	code := input.Code
 	newEmail := input.NewEmail
+	if email == newEmail {
+		c.JSON(422, gin.H{"errors": []ErrorFor422{{
+			Code:   Invalid,
+			Field:  "new_email",
+			Detail: "new email is the same as the old one",
+		}}})
+	}
 	if _, err := model.GetUserByEmail(email); err != nil {
 		c.JSON(422, gin.H{"errors": []ErrorFor422{{
 			Code:  Invalid,
@@ -227,21 +235,20 @@ func logout(c *gin.Context) {
 }
 
 func searchUsers(c *gin.Context) {
-	var jsonGetSU struct {
-		Email    string `json:"email"`
-		Username string `json:"username"`
-		User_id  int    `json:"user_id"`
-	}
-	var users []model.User
+	userIDStr := c.Query("user_id")
+	userID := 0
 	var err error
-	var answer []map[string]interface{}
-	if err = c.ShouldBindJSON(&jsonGetSU); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
-		return
+	if userIDStr != "" {
+		userID, err = strconv.Atoi(userIDStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+			return
+		}
 	}
-	email := jsonGetSU.Email
-	username := jsonGetSU.Username
-	userID := jsonGetSU.User_id
+	email := c.Query("email")
+	username := c.Query("username")
+	var users []model.User
+	var answer []map[string]interface{}
 	if email == "" && username == "" && userID == 0 {
 		users, err = model.SearchUsers("", []string{"email"})
 		if err != nil {
@@ -334,7 +341,8 @@ func searchUsers(c *gin.Context) {
 	}
 }
 
-func getTheUser(c *gin.Context, username string) {
+func getTheUser(c *gin.Context) {
+	username := c.Param("username")
 	usr, err := model.GetUserByUsername(username)
 	if err != nil {
 		c.JSON(404, gin.H{})
@@ -401,7 +409,7 @@ func updateCurrentUser(c *gin.Context) {
 			return
 		}
 
-		if _, err := model.GetUserByUsername(input.Username); err == nil {
+		if usr, err := model.GetUserByUsername(input.Username, "ID"); err == nil && usr.ID != (uint)(userID) {
 			c.JSON(422, gin.H{"errors": []ErrorFor422{{
 				Code:  AlreadyExists,
 				Field: "username",

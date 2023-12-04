@@ -7,7 +7,7 @@ import (
 )
 
 func CheckPasswordByUsername(username string, password string) (uint, bool) {
-	user, err := model.GetUserByUsername(username, "Password")
+	user, err := model.GetUserByUsername(username, "Password", "ID")
 	if err != nil {
 		return 0, false
 	}
@@ -16,7 +16,7 @@ func CheckPasswordByUsername(username string, password string) (uint, bool) {
 }
 
 func CheckPasswordByEmail(email string, password string) (uint, bool) {
-	user, err := model.GetUserByEmail(email, "Password")
+	user, err := model.GetUserByEmail(email, "Password", "ID")
 	if err != nil {
 		return 0, false
 	}

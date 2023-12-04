@@ -7,7 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func grantCreationPermission(c *gin.Context, author_ids string) {
+func grantCreationPermission(c *gin.Context) {
+	author_ids := c.Param("user_id")
 	userID := c.MustGet("userID").(int)
 	author_id, err := strconv.Atoi(author_ids)
 	if err != nil {
@@ -22,7 +23,7 @@ func grantCreationPermission(c *gin.Context, author_ids string) {
 	if err != nil {
 		c.JSON(404, gin.H{})
 	} else {
-		err = model.UpdateUserById((uint)(author_id), map[string]interface{}{"authorization": "Secondary Admin"})
+		err = model.UpdateUserById((uint)(author_id), map[string]interface{}{"can_create_game_or_contest": true})
 		if err != nil {
 			c.JSON(500, gin.H{})
 			return
@@ -31,7 +32,8 @@ func grantCreationPermission(c *gin.Context, author_ids string) {
 	}
 }
 
-func revokeCreationPermission(c *gin.Context, author_ids string) {
+func revokeCreationPermission(c *gin.Context) {
+	author_ids := c.Param("user_id")
 	userID := c.MustGet("userID").(int)
 	author_id, err := strconv.Atoi(author_ids)
 	if err != nil {
@@ -46,7 +48,7 @@ func revokeCreationPermission(c *gin.Context, author_ids string) {
 	if err != nil {
 		c.JSON(404, gin.H{})
 	} else {
-		err = model.UpdateUserById((uint)(author_id), map[string]interface{}{"authorization": "Regular User"})
+		err = model.UpdateUserById((uint)(author_id), map[string]interface{}{"can_create_game_or_contest": false})
 		if err != nil {
 			c.JSON(500, gin.H{})
 			return

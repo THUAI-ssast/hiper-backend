@@ -54,7 +54,11 @@ func SearchUsers(keyword string, searchFields []string, resultFields ...string) 
 
 func getUser(condition map[string]interface{}, fields ...string) (User, error) {
 	var user User
-	err := db.Select(fields).Where(condition).First(&user).Error
+	db := db.Where(condition)
+	if len(fields) > 0 {
+		db = db.Select(fields)
+	}
+	err := db.First(&user).Error
 	return user, err
 }
 
