@@ -4,21 +4,20 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/redis/go-redis/v9"
+	"github.com/go-redis/redis/v8"
 	"github.com/spf13/viper"
 )
 
-var rdb *redis.Client
+var Rdb *redis.Client
 
-// InitRedis initializes the redis connection
 func InitRedis() {
-	rdb = redis.NewClient(&redis.Options{
+	Rdb = redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%s:%s", viper.GetString("redis.host"), viper.GetString("redis.port")),
 		Password: viper.GetString("redis.password"),
 		DB:       viper.GetInt("redis.db"),
 	})
 
-	_, err := rdb.Ping(context.Background()).Result()
+	_, err := Rdb.Ping(context.Background()).Result()
 	if err != nil {
 		panic(err)
 	}
