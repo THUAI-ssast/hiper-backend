@@ -350,7 +350,7 @@ func getTheUser(c *gin.Context, username string) {
 			"school":              usr.School,
 			"username":            usr.Username,
 			"email":               usr.Email,
-			"contests_registered": usr.ContestsRegistered,
+			"contests_registered": "", //usr.ContestsRegistered,
 		})
 	}
 }
@@ -373,7 +373,7 @@ func getCurrentUser(c *gin.Context) {
 			"school":              usr.School,
 			"username":            usr.Username,
 			"email":               usr.Email,
-			"contests_registered": usr.ContestsRegistered,
+			"contests_registered": "", //usr.ContestsRegistered,
 		})
 	}
 }
@@ -457,7 +457,7 @@ func updateCurrentUser(c *gin.Context) {
 				"can_create_game_or_contest": usr.Permissions.CanCreateGameOrContest,
 			},
 			"school":              usr.School,
-			"contests_registered": usr.ContestsRegistered,
+			"contests_registered": "", //usr.ContestsRegistered,
 			"email":               usr.Email,
 		})
 	}
