@@ -1,11 +1,19 @@
 package model
 
 import (
-	"context"
+	"errors"
+	"fmt"
+  "context"
 	"time"
 )
 
 var ctx = context.Background()
+
+var (
+	ErrVerificationCode         = errors.New("verification error")
+	ErrVerificationCodeNotExist = fmt.Errorf("%w: verification code not exist", ErrVerificationCode)
+	ErrVerificationCodeExpired  = fmt.Errorf("%w: verification code expired", ErrVerificationCode)
+)
 
 func SaveVerificationCode(code string, email string, expireInMinutes int) error {
 	err := Rdb.Set(ctx, email, code, time.Duration(expireInMinutes)*time.Minute).Err()
