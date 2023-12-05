@@ -30,6 +30,8 @@ func InitDb() {
 
 // AutoMigrateDb migrates the database
 func AutoMigrateDb() {
-	// TODO: add more models
-	db.AutoMigrate(&User{})
+	err := db.AutoMigrate(&User{}, &Game{}, &Contest{}, &Contestant{}, &Ai{}, &Match{}, &Sdk{})
+	if err != nil {
+		panic(err)
+	}
 }

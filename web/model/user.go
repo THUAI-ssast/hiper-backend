@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-type Permissions struct {
+type GlobalPermissions struct {
 	CanCreateGameOrContest bool `gorm:"default: false"`
 }
 
@@ -18,9 +18,9 @@ type User struct {
 	Department  string
 	Email       string `gorm:"uniqueIndex,not null"`
 	Name        string
-	Nickname    string      `gorm:"index"`
-	Password    []byte      `gorm:"not null"`
-	Permissions Permissions `gorm:"embedded"`
+	Nickname    string            `gorm:"index"`
+	Password    []byte            `gorm:"not null"`
+	Permissions GlobalPermissions `gorm:"embedded"`
 	School      string
 	Username    string `gorm:"uniqueIndex,not null"`
 }
