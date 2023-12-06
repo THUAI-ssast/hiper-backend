@@ -10,8 +10,7 @@ type Contest struct {
 
 	Admins []User `gorm:"many2many:contest_admins;"`
 
-	// TODO
-	// registration
+	Registration Registration `gorm:"embedded"`
 }
 
 type ContestPrivilege string
@@ -22,4 +21,14 @@ const (
 	ContestPrivilegeUnregistered ContestPrivilege = "unregistered"
 )
 
+type Registration struct {
+	RegistrationEnabled bool `gorm:"default: false"`
+	Password            string
+}
+
 // TODO: add CRUD functions for contest
+
+func GetContestPrivilege(contestId uint, userId uint) (ContestPrivilege, error) {
+	// TODO: implement
+	return ContestPrivilegeRegistered, nil
+}
