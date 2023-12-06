@@ -45,10 +45,16 @@ type TaskStatus struct {
 	Msg   string
 }
 
+// BeforeSave truncates the message to 1000 characters.
 func (ts *TaskStatus) BeforeSave(tx *gorm.DB) (err error) {
 	const maxLen = 1000
 	if len(ts.Msg) > maxLen {
 		ts.Msg = ts.Msg[:maxLen]
 	}
 	return
+}
+
+type DockerTask struct {
+	Dockerfile string
+	Status     TaskStatus `gorm:"embedded"`
 }
