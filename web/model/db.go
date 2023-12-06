@@ -22,6 +22,8 @@ func InitDb() {
 	)
 	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
 		DisableForeignKeyConstraintWhenMigrating: true,
+		SkipDefaultTransaction:                   true,
+		PrepareStmt:                              true,
 	})
 	if err != nil {
 		panic(err)
