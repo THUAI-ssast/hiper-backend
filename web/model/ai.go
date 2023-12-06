@@ -1,6 +1,10 @@
 package model
 
-import "gorm.io/gorm"
+import (
+	"errors"
+
+	"gorm.io/gorm"
+)
 
 type Ai struct {
 	gorm.Model
@@ -17,6 +21,27 @@ type Ai struct {
 
 	Note   string
 	Status TaskStatus `gorm:"embedded;embeddedPrefix:task_"`
+}
+
+func (a *Ai) BeforeCreate(tx *gorm.DB) (err error) {
+	// Fill GameId from ContestId
+	if a.ContestId != 0 && a.GameId == 0 {
+		var gameId uint
+		if err = tx.Model(&Contest{}).Select("game_id").First(&Contest{}, a.ContestId).Error; err != nil {
+			return err
+		}
+		a.GameId = gameId
+	}
+	// Fill Number
+	var maxNumber uint
+	if err = tx.Model(&Ai{}).Where("game_id = ? AND contest_id = ?", a.GameId, a.ContestId).Pluck("MAX(number)", &maxNumber).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+		maxNumber = 0 // If no rows are found, set maxNumber to 0
+	}
+	a.Number = maxNumber + 1
+	return nil
 }
 
 // TODO: add CRUD functions for ai
