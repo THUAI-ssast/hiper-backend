@@ -4,10 +4,10 @@ import "gorm.io/gorm"
 
 type Contestant struct {
 	gorm.Model
-	GameId uint `gorm:"uniqueIndex:idx_contestant,priority:1"`
+	GameId uint `gorm:"index"`
 	// ContestId is 0 if the contestant is in a game instead of any contest.
-	ContestId uint `gorm:"uniqueIndex:idx_contestant,priority:2"`
-	UserId    uint `gorm:"uniqueIndex:idx_contestant,priority:3"`
+	ContestId uint `gorm:"index"`
+	UserId    uint `gorm:"index"`
 
 	Performance string                // editable by contest script
 	Permissions ContestantPermissions `gorm:"embedded"`

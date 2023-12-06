@@ -4,11 +4,11 @@ import "gorm.io/gorm"
 
 type Match struct {
 	gorm.Model
-	GameId uint `gorm:"uniqueIndex:idx_match,priority:1"`
+	GameId uint `gorm:"index"`
 	// ContestId is 0 if the match is in a game instead of any contest.
-	ContestId uint `gorm:"uniqueIndex:idx_match,priority:2"`
+	ContestId uint `gorm:"index"`
 	// Number is a unique identifier for each match within a game or contest.
-	Number uint `gorm:"uniqueIndex:idx_match,priority:3"`
+	Number uint `gorm:"index"`
 
 	Players []Ai `gorm:"many2many:match_ais;"`
 	State   TaskState

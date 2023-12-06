@@ -4,11 +4,11 @@ import "gorm.io/gorm"
 
 type Ai struct {
 	gorm.Model
-	GameId uint `gorm:"uniqueIndex:idx_ai,priority:1"`
+	GameId uint `gorm:"index"`
 	// ContestId is 0 if the AI is in a game instead of any contest.
-	ContestId uint `gorm:"uniqueIndex:idx_ai,priority:2"`
+	ContestId uint `gorm:"index"`
 	// Number is a unique identifier for each AI within a game or contest.
-	Number uint `gorm:"uniqueIndex:idx_ai,priority:3"`
+	Number uint `gorm:"index"`
 
 	UserId uint `gorm:"index"`
 	User   User `gorm:"foreignKey:UserId"`
