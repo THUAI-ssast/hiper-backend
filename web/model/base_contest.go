@@ -35,6 +35,11 @@ const (
 	TaskStateSystemError TaskState = "system_error"
 )
 
+func (ts *TaskState) BeforeCreate(tx *gorm.DB) (err error) {
+	*ts = TaskStatePending
+	return
+}
+
 type TaskStatus struct {
 	State TaskState
 	Msg   string

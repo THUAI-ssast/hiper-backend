@@ -11,7 +11,9 @@ type Ai struct {
 	Number uint `gorm:"uniqueIndex:idx_ai,priority:3"`
 
 	UserId uint `gorm:"index"`
+	User   User `gorm:"foreignKey:UserId"`
 	SdkId  uint
+	Sdk    Sdk `gorm:"foreignKey:SdkId"`
 
 	Note   string
 	Status TaskStatus `gorm:"embedded;embeddedPrefix:task_"`
