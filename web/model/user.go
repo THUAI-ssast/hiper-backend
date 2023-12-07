@@ -25,8 +25,9 @@ type User struct {
 	Username    string `gorm:"uniqueIndex,not null"`
 }
 
-func CreateUser(user User) error {
-	return db.Create(&user).Error
+// CreateUser creates a user. `user`'s ID will be updated if the operation succeeds.
+func CreateUser(user *User) error {
+	return db.Create(user).Error
 }
 
 func GetUserByUsername(username string, fields ...string) (User, error) {
