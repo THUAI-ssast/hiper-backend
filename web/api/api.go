@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 )
@@ -8,6 +9,8 @@ import (
 // ApiListenHttp starts the HTTP server
 func ApiListenHttp() {
 	r := gin.Default()
+
+	r.Use(cors.Default())
 
 	addUserRoutes(r)
 	addPermissionRoutes(r)
@@ -20,6 +23,7 @@ func ApiListenHttp() {
 func ApiListenHttps() {
 	r := gin.Default()
 
+	r.Use(cors.Default())
 	addUserRoutes(r)
 	addPermissionRoutes(r)
 	addGameRoutes(r)

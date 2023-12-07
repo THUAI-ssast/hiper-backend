@@ -1,7 +1,6 @@
 package mail
 
 import (
-	"crypto/tls"
 	"fmt"
 
 	"github.com/spf13/viper"
@@ -29,8 +28,6 @@ func SendVerificationCode(code string, email string) error {
 	m.SetBody("text/html", fmt.Sprintf(message, code))
 
 	d := gomail.NewDialer(host, port, username, password)
-	// 关闭SSL协议认证
-	d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 
 	return d.DialAndSend(m)
 }

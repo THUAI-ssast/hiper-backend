@@ -19,6 +19,6 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	//api.ApiListenHttp()
-	api.ApiListenHttps()
+	api.ApiListenHttp()
+	//api.ApiListenHttps()
 }
