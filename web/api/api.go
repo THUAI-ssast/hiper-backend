@@ -56,10 +56,6 @@ func addUserRoutes(r *gin.Engine) {
 			login(c)
 		})
 
-		v1.GET("/users/:username", func(c *gin.Context) {
-			getTheUser(c)
-		})
-
 		//此后的路由都需要验证是否登录.在其内部，我们可以使用userID := c.MustGet("userID").(int)来获取当前登录用户的ID
 		auth := v1.Group("/", loginVerify())
 		{
@@ -69,6 +65,10 @@ func addUserRoutes(r *gin.Engine) {
 
 			auth.DELETE("/user/logout", func(c *gin.Context) {
 				logout(c)
+			})
+
+			auth.GET("/users/:username", func(c *gin.Context) {
+				getTheUser(c)
 			})
 
 			auth.GET("/user", func(c *gin.Context) {

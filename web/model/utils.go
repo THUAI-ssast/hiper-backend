@@ -1,9 +1,9 @@
 package model
 
 import (
+	"context"
 	"errors"
 	"fmt"
-  "context"
 	"time"
 )
 
