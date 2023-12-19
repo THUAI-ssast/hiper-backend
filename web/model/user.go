@@ -122,7 +122,7 @@ func (u *User) GetContestRegistered(fields ...string) ([]Contest, error) {
 // Irregular CRUD
 
 // UpsertUser upserts a user.
-// If the user exists(determined by username), update its password.
+// If the user exists(determinated by username), update its password.
 // If the user does not exist, create it.
 func UpsertUser(user User) {
 	// Find the user by username or create a new one
