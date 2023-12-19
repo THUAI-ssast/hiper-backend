@@ -62,7 +62,11 @@ func SearchUsers(keyword string, searchFields []string, resultFields ...string) 
 
 func getUser(condition map[string]interface{}, fields ...string) (User, error) {
 	var user User
-	err := db.Select(fields).Where(condition).First(&user).Error
+	db := db.Where(condition)
+	if len(fields) > 0 {
+		db = db.Select(fields)
+	}
+	err := db.First(&user).Error
 	return user, err
 }
 
@@ -74,6 +78,10 @@ func UpdateUserByUsername(username string, updates map[string]interface{}) error
 
 func UpdateUserById(id uint, updates map[string]interface{}) error {
 	return updateUser(map[string]interface{}{"id": id}, updates)
+}
+
+func UpdateUserByEmail(email string, updates map[string]interface{}) error {
+	return updateUser(map[string]interface{}{"email": email}, updates)
 }
 
 func updateUser(condition map[string]interface{}, updates map[string]interface{}) error {

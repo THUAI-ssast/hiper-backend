@@ -28,5 +28,6 @@ func SendVerificationCode(code string, email string) error {
 	m.SetBody("text/html", fmt.Sprintf(message, code))
 
 	d := gomail.NewDialer(host, port, username, password)
+
 	return d.DialAndSend(m)
 }

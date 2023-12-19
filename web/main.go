@@ -15,9 +15,10 @@ func main() {
 	model.AutoMigrateDb()
 	model.InitRedis()
 
-	if false == viper.GetBool("is_debug") {
+	if !viper.GetBool("is_debug") {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
 	api.ApiListenHttp()
+	//api.ApiListenHttps()
 }
