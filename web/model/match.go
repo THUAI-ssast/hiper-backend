@@ -18,8 +18,6 @@ type Match struct {
 	State   TaskState
 	Tag     string
 
-	Logs   []string `gorm:"serializer:json"`
-	Replay string
 	Scores []int `gorm:"serializer:json"`
 }
 
@@ -44,4 +42,48 @@ func (m *Match) BeforeCreate(tx *gorm.DB) (err error) {
 	return nil
 }
 
-// TODO: add CRUD functions for match
+func CreateMatch(match *Match, playerIDs []uint) error {
+	players := make([]Ai, len(playerIDs))
+	for i, id := range playerIDs {
+		players[i] = Ai{Model: gorm.Model{ID: id}}
+	}
+	match.Players = players
+	return db.Create(match).Error
+}
+
+func GetMatches(query QueryParams) ([]Match, int64, error) {
+	if query.Limit == 0 {
+		query.Limit = 20
+	}
+	var matches []Match
+	var count int64
+	db := db.Where(query.Filter)
+	err := db.Count(&count).Error
+	if err != nil {
+		return nil, 0, err
+	}
+	err = db.Offset(query.Offset).Limit(query.Limit).Find(&matches).Error
+	return matches, count, err
+}
+
+func getMatch(condition map[string]interface{}, fields ...string) (Match, error) {
+	var match Match
+	err := db.Select(fields).Where(condition).First(&match).Error
+	return match, err
+}
+
+// associations
+
+// GetLogs returns logs of each player in the match
+func (m *Match) GetLogs() ([]string, error) {
+	// TODO: implement
+	// read logs from file
+	return nil, nil
+}
+
+// GetReplay returns replay of the match
+func (m *Match) GetReplay() (string, error) {
+	// TODO: implement
+	// read replay from file
+	return "", nil
+}

@@ -5,6 +5,13 @@ import (
 	"fmt"
 )
 
+type QueryParams struct {
+	Filter map[string]interface{}
+	Offset int
+	Limit  int
+	Fields []string
+}
+
 var (
 	ErrVerificationCode         = errors.New("verification error")
 	ErrVerificationCodeNotExist = fmt.Errorf("%w: verification code not exist", ErrVerificationCode)

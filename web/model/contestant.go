@@ -33,10 +33,22 @@ type ContestantPermissions struct {
 	PublicMatchEnabled bool `gorm:"default:true"`
 }
 
+// CRUD: Create
+
 // CreateContestant creates a contestant.
 // Either GameId or ContestId must be filled.
+// UserId must be filled.
 func CreateContestant(contestant Contestant) error {
 	return db.Create(&contestant).Error
+}
+
+// CRUD: Read
+
+// Sorted by points in descending order.
+func getContestants(filter map[string]interface{}, fields ...string) ([]Contestant, error) {
+	var contestants []Contestant
+	err := db.Select(fields).Where(filter).Order("points DESC").Find(&contestants).Error
+	return contestants, err
 }
 
 // TODO: add CRUD functions for contestant

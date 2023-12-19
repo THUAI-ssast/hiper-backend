@@ -43,3 +43,10 @@ func (s *Sdk) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 // TODO: add CRUD functions for sdk
+
+// CRUD: Read
+
+func GetSdks(filter map[string]interface{}, fields ...string) ([]Sdk, error) {
+	// TODO: implement
+	return []Sdk{}, nil
+}

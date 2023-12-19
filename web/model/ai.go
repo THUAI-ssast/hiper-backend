@@ -45,3 +45,10 @@ func (a *Ai) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 // TODO: add CRUD functions for ai
+
+// CRUD: Read
+
+func GetAis(query QueryParams) ([]Ai, int64, error) {
+	// TODO: implement
+	return []Ai{}, 0, nil
+}
