@@ -116,20 +116,24 @@ func (g *Game) GetContestants(fields ...string) ([]Contestant, error) {
 	return getContestants(map[string]interface{}{"game_id": g.ID, "contest_id": 0}, fields...)
 }
 
-// Ai
+// ai
 
-func (g *Game) GetAis(query QueryParams) ([]Ai, int64, error) {
+func (g *Game) GetAis(query QueryParams, preload bool) (ais []Ai, count int64, err error) {
 	if query.Filter == nil {
 		query.Filter = make(map[string]interface{})
 	}
 	query.Filter["game_id"] = g.ID
 	query.Filter["contest_id"] = 0
-	return GetAis(query)
+	return GetAis(query, preload)
 }
 
-// Match
+func (g *Game) GetAiById(id uint, preload bool, fields ...string) (Ai, error) {
+	return getAi(map[string]interface{}{"game_id": g.ID, "contest_id": 0, "Number": id}, preload, fields...)
+}
 
-func (g *Game) GetMatches(query QueryParams) ([]Match, int64, error) {
+// match
+
+func (g *Game) GetMatches(query QueryParams) (matches []Match, count int64, err error) {
 	if query.Filter == nil {
 		query.Filter = make(map[string]interface{})
 	}
@@ -138,7 +142,7 @@ func (g *Game) GetMatches(query QueryParams) ([]Match, int64, error) {
 	return GetMatches(query)
 }
 
-// Sdk
+// sdk
 
 func (g *Game) GetSdks(fields ...string) ([]Sdk, error) {
 	return GetSdks(map[string]interface{}{"game_id": g.ID, "contest_id": 0}, fields...)

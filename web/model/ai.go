@@ -2,6 +2,8 @@ package model
 
 import (
 	"errors"
+	"path/filepath"
+	"strconv"
 
 	"gorm.io/gorm"
 )
@@ -44,11 +46,88 @@ func (a *Ai) BeforeCreate(tx *gorm.DB) (err error) {
 	return nil
 }
 
-// TODO: add CRUD functions for ai
+// CRUD: Create
+
+func CreateAi(ai *Ai) error {
+	return db.Create(ai).Error
+}
 
 // CRUD: Read
 
-func GetAis(query QueryParams) ([]Ai, int64, error) {
-	// TODO: implement
-	return []Ai{}, 0, nil
+// If preload is true, sdk and user will be preloaded, but only some basic fields.
+// sdk: id, name
+// user: avatar_url, nickname, username
+func GetAis(query QueryParams, preload bool) (ais []Ai, count int64, err error) {
+	db := db.Select(query.Fields).Where(query.Filter)
+	if preload {
+		db = db.Preload("Sdk", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id", "name")
+		}).Preload("User", func(db *gorm.DB) *gorm.DB {
+			return db.Select("avatar_url", "nickname", "username")
+		})
+	}
+	err = db.Limit(query.Limit).Offset(query.Offset).Find(&ais).Error
+	if err != nil {
+		return nil, 0, err
+	}
+	err = db.Count(&count).Error
+	if err != nil {
+		return nil, 0, err
+	}
+	return ais, count, nil
+}
+
+// If preload is true, sdk and user will be preloaded, but only some basic fields.
+// sdk: id, name
+// user: avatar_url, nickname, username
+func getAi(condition map[string]interface{}, preload bool, fields ...string) (Ai, error) {
+	var ai Ai
+	db := db.Select(fields).Where(condition)
+	if preload {
+		db = db.Preload("Sdk", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id", "name")
+		}).Preload("User", func(db *gorm.DB) *gorm.DB {
+			return db.Select("avatar_url", "nickname", "username")
+		})
+	}
+	err := db.First(&ai).Error
+	return ai, err
+}
+
+// CRUD: Update
+
+func updateAi(condition map[string]interface{}, updates map[string]interface{}) error {
+	return db.Model(&Ai{}).Where(condition).Updates(updates).Error
+}
+
+// associations
+
+// ai file
+
+// SaveFile saves the AI file to the file system, renamed to src, with the same extension.
+// If there is no extension, please pass "".
+func (a *Ai) SaveFile(content []byte, ext string) error {
+	relativePath := a.getRelativePathWithoutExt()
+	if ext != "" {
+		relativePath += "." + ext
+	}
+	return saveFile(relativePath, content)
+}
+
+// GetFile returns the AI file from the file system.
+func (a *Ai) GetFile() ([]byte, error) {
+	relativePathWithoutExt := a.getRelativePathWithoutExt()
+	return getFileWithAutoExt(relativePathWithoutExt)
+}
+
+func (a *Ai) getRelativePathWithoutExt() string {
+	var relativePathWithoutExt string
+	// Determine whether the AI is in a contest or a game
+	if a.ContestId != 0 {
+		relativePathWithoutExt = filepath.Join("contest", strconv.Itoa(int(a.ContestId)))
+	} else {
+		relativePathWithoutExt = filepath.Join("game", strconv.Itoa(int(a.GameId)))
+	}
+	relativePathWithoutExt = filepath.Join(relativePathWithoutExt, "ais", strconv.Itoa(int(a.Number)), "src")
+	return relativePathWithoutExt
 }
