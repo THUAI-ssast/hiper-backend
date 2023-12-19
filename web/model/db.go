@@ -20,7 +20,11 @@ func InitDb() {
 		viper.GetString("db.dbname"),
 		viper.GetString("db.port"),
 	)
-	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
+		DisableForeignKeyConstraintWhenMigrating: true,
+		SkipDefaultTransaction:                   true,
+		PrepareStmt:                              true,
+	})
 	if err != nil {
 		panic(err)
 	}
@@ -28,5 +32,8 @@ func InitDb() {
 
 // AutoMigrateDb migrates the database
 func AutoMigrateDb() {
-	// TODO: implement
+	err := db.AutoMigrate(&User{}, &Game{}, &Contest{}, &Contestant{}, &Ai{}, &Match{}, &Sdk{})
+	if err != nil {
+		panic(err)
+	}
 }
