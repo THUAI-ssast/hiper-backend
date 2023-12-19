@@ -40,7 +40,7 @@ func IsCodeMatch(code string, email string) bool {
 	return code == storedCode
 }
 
-var passwordRegexp = regexp.MustCompile(`^[0-9A-Za-z!@#$%^&*()[]{}<>.,;:?/|~]{8,16}$`)
+var passwordRegexp = regexp.MustCompile(`^[0-9A-Za-z!@#$%^&*()\[\]{}<>.,;:?/|~]{8,16}$`)
 
 func IsValidPassword(password string) bool {
 	return passwordRegexp.MatchString(password)

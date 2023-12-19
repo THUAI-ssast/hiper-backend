@@ -2,11 +2,11 @@
 
 is_debug = true
 
-# Superuser is the first user of the system, who has all the permissions
-# `username` "admin" is reserved for superuser.
-# `email` property is invalid for superuser. In fact it's "admin@mails.tsinghua.edu.cn"
+# Superadmin is the first user of the system, who has all the permissions
+# `username` "admin" is reserved for superadmin.
+# `email` property is invalid for superadmin. In fact it's "admin@mails.tsinghua.edu.cn"
 # It supports hot reload, so you can change the following values at any time
-[superuser]
+[superadmin]
 password = "password"
 
 [db]

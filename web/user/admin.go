@@ -23,6 +23,10 @@ func UpsertSuperAdmin() {
 
 	model.UpsertUser(model.User{
 		Username: "admin",
+		Email:    "admin@mails.tsinghua.edu.cn",
+		Permissions: model.GlobalPermissions{
+			CanCreateGameOrContest: true,
+		},
 		Password: hashedPassword,
 	})
 }
