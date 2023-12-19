@@ -21,14 +21,22 @@ func InitConfig() {
 	viper.SetConfigType("toml")
 	viper.AddConfigPath(".")
 	viper.ReadInConfig()
+}
 
+// InitConfigAfter initializes the configuration of the application after other modules are initialized
+func InitConfigAfter() {
 	viper.WatchConfig()
 	viper.OnConfigChange(handleConfigChange)
+	applyConfig()
 }
 
 // handleConfigChange handles changes in the configuration
 func handleConfigChange(e fsnotify.Event) {
 	log.Println("Config file changed:", e.Name)
+	applyConfig()
+}
+
+func applyConfig() {
 	if viper.IsSet("superadmin.password") {
 		user.UpsertSuperAdmin()
 	}

@@ -14,6 +14,7 @@ func main() {
 	model.InitDb()
 	model.AutoMigrateDb()
 	model.InitRedis()
+	config.InitConfigAfter()
 
 	if !viper.GetBool("is_debug") {
 		gin.SetMode(gin.ReleaseMode)

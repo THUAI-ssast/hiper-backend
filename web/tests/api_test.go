@@ -24,6 +24,7 @@ func init() {
 	model.InitDb()
 	model.AutoMigrateDb()
 	model.InitRedis()
+	config.InitConfigAfter()
 	go api.ApiListenHttp()
 	time.Sleep(10 * time.Second)
 	for i := 0; i < 5; i++ {

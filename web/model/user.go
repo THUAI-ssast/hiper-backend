@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 type GlobalPermissions struct {
@@ -113,11 +112,14 @@ func (u *User) GetContestants(fields ...string) ([]Contestant, error) {
 // Irregular CRUD
 
 // UpsertUser upserts a user.
-// If the user exists, update its password.
+// If the user exists(determinated by username), update its password.
 // If the user does not exist, create it.
 func UpsertUser(user User) {
-	db.Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "username"}},
-		DoUpdates: clause.AssignmentColumns([]string{"password"}),
-	}).Create(&user)
+	// Find the user by username or create a new one
+	result := db.Where(User{Username: user.Username}).FirstOrCreate(&user)
+
+	// If the user was found, update the password
+	if result.RowsAffected > 0 {
+		db.Model(&user).Update("password", user.Password)
+	}
 }
