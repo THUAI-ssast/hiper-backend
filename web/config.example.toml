@@ -13,7 +13,7 @@ password = "password"
 host = "localhost"
 port = 5432
 user = "hiper"
-password = "password"
+password = "hiper"
 dbname = "hiper"
 
 [redis]
@@ -23,7 +23,7 @@ password = ""
 db = 0
 
 [mail]
-host = "smtp.example.com"
+host = "smtp.qq.com"
 port = 465
-username = "username"
-password = "password"
+username = "1585525821@qq.com"
+password = "rhlccveuamqxicbg"
