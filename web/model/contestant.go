@@ -71,3 +71,7 @@ func DeleteContestantByID(id uint) error {
 func (c *Contestant) Delete() error {
 	return db.Delete(c).Error
 }
+
+func GetContestantsByUserId(userId uint, fields ...string) ([]Contestant, error) {
+	return GetContestants(map[string]interface{}{"user_id": userId}, []preloadQuery{{"User", fields}})
+}
