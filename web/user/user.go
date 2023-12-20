@@ -2,12 +2,11 @@ package user
 
 import (
 	"fmt"
+	"math/rand"
+	"strings"
+
 	"hiper-backend/mail"
 	"hiper-backend/model"
-	"math/rand"
-	"net/url"
-	"regexp"
-	"strings"
 )
 
 func GenValidateCode(width int) string {
@@ -32,24 +31,18 @@ func SendVerificationCode(email string) error {
 	return nil
 }
 
-func IsCodeMatch(code string, email string) bool {
-	storedCode, err := model.GetVerificationCode(email)
-	if err != nil {
-		return false
+// RegisterUser registers a user.
+// It returns the user id and an error.
+// The error is nil if the registration is successful.
+func RegisterUser(username string, email string, password string) (uint, error) {
+	hashedPassword := HashPassword(password)
+	user := model.User{
+		Username: username,
+		Email:    email,
+		Password: hashedPassword,
 	}
-	return code == storedCode
-}
-
-var passwordRegexp = regexp.MustCompile(`^[0-9A-Za-z!@#$%^&*()\[\]{}<>.,;:?/|~]{8,16}$`)
-
-func IsValidPassword(password string) bool {
-	return passwordRegexp.MatchString(password)
-}
-
-func IsValidURL(urlStr string) bool {
-	if urlStr == "" {
-		return true
+	if err := model.CreateUser(&user); err != nil {
+		return 0, err
 	}
-	_, err := url.ParseRequestURI(urlStr)
-	return err == nil
+	return user.ID, nil
 }
