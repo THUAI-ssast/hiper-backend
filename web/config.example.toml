@@ -10,20 +10,20 @@ is_debug = true
 password = "password"
 
 [db]
-host = "localhost"
-port = 5432
+host = "db"
+port = "5432"
+dbname = "test"
 user = "hiper"
-password = "password"
-dbname = "hiper"
+password = "hiper"
 
 [redis]
-host = "localhost"
-port = 6379
+host = "redis"
+port = "6379"
 password = ""
-db = 0
+db = "0"
 
 [mail]
-host = "smtp.example.com"
+host = "smtp.qq.com"
 port = 465
-username = "username"
-password = "password"
+username = "1585525821@qq.com"
+password = "rhlccveuamqxicbg"
