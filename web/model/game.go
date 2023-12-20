@@ -111,9 +111,9 @@ func (g *Game) RemoveAdmin(userId uint) error {
 // contestant
 
 // GetContestants returns all contestants in the game.
-// By default, sorted by points in descending order.
-func (g *Game) GetContestants(fields ...string) ([]Contestant, error) {
-	return getContestants(map[string]interface{}{"game_id": g.ID, "contest_id": 0}, fields...)
+// Sorted by points in descending order.
+func (g *Game) GetContestants() ([]Contestant, error) {
+	return getContestants(map[string]interface{}{"game_id": g.ID, "contest_id": 0}, preloadQuery{})
 }
 
 // ai
