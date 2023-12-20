@@ -95,17 +95,66 @@ func addPermissionRoutes(r *gin.Engine) {
 			auth.DELETE("/permissions/create_game_or_contest/:user_id", func(c *gin.Context) {
 				revokeCreationPermission(c)
 			})
+
 		}
 	}
 }
 
 func addGameRoutes(r *gin.Engine) {
-	// auth.POST("/api/v1/games", func(c *gin.Context) {
-	// 	create_game(c)
-	// })
-
-	// auth.POST("/api/v1/games/:id/fork", func(c *gin.Context) {
-	// 	game_id := c.Param("id")
-	// 	fork_game(c, game_id)
-	// })
+	v1 := r.Group("/api/v1")
+	{
+		//此后的路由都需要验证是否登录.在其内部，我们可以使用userID := c.MustGet("userID").(int)来获取当前登录用户的ID
+		auth := v1.Group("/", loginVerify())
+		{
+			auth.POST("/games", func(c *gin.Context) {
+				createGame(c)
+			})
+			auth.POST("/games/:id/fork", func(c *gin.Context) {
+				forkGame(c)
+			})
+			//此后的路由都需要验证是否是管理员.在其内部，我们可以使用gameID := c.MustGet("gameID").(int)来获取当前游戏的ID
+			auth = auth.Group("/", privilegeCheck())
+			{
+				auth.DELETE("/games/:id", func(c *gin.Context) {
+					deleteGame(c)
+				})
+				auth.POST("/games/:id/admins", func(c *gin.Context) {
+					addAdmin(c)
+				})
+				auth.DELETE("/games/:id/admins", func(c *gin.Context) {
+					relinquishAdmin(c)
+				})
+				auth.PUT("/games/:id/contest_script", func(c *gin.Context) {
+					updateGameScript(c)
+				})
+				auth.PATCH("/games/:id/metadata", func(c *gin.Context) {
+					updateGameMetadata(c)
+				})
+				auth.POST("/games/:id/sdks", func(c *gin.Context) {
+					addSdk(c)
+				})
+				auth.GET("/games/:id/sdks/:sdk_id", func(c *gin.Context) {
+					getSdk(c)
+				})
+				auth.DELETE("/games/:id/sdks/:sdk_id", func(c *gin.Context) {
+					deleteSdk(c)
+				})
+				auth.PATCH("/games/:id/sdks/:sdk_id", func(c *gin.Context) {
+					updateSdk(c)
+				})
+				auth.PATCH("/games/:id/states", func(c *gin.Context) {
+					updateGameStates(c)
+				})
+				auth.GET("/games/:id/settings", func(c *gin.Context) {
+					getGameSettings(c)
+				})
+				auth.PATCH("/games/:id/game_logic", func(c *gin.Context) {
+					updateGameLogic(c)
+				})
+				auth.PATCH("/games/:id/match_detail", func(c *gin.Context) {
+					updateMatchDetail(c)
+				})
+			}
+		}
+	}
 }

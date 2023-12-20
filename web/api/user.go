@@ -46,6 +46,7 @@ func registerUser(c *gin.Context) {
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
+		return
 	}
 
 	email := input.Email
@@ -58,30 +59,35 @@ func registerUser(c *gin.Context) {
 			Code:  Invalid,
 			Field: "verification_code",
 		}})
+		return
 	}
 	if !mail.IsValidEmail(email) {
 		c.JSON(422, gin.H{"error": ErrorFor422{
 			Code:  Invalid,
 			Field: "email",
 		}})
+		return
 	}
 	if !user.IsValidPassword(password) {
 		c.JSON(422, gin.H{"error": ErrorFor422{
 			Code:  Invalid,
 			Field: "password",
 		}})
+		return
 	}
 	if _, err := model.GetUserByEmail(email); err == nil {
 		c.JSON(422, gin.H{"error": ErrorFor422{
 			Code:  AlreadyExists,
 			Field: "email",
 		}})
+		return
 	}
 	if _, err := model.GetUserByUsername(username); err == nil {
 		c.JSON(422, gin.H{"error": ErrorFor422{
 			Code:  AlreadyExists,
 			Field: "username",
 		}})
+		return
 	}
 
 	u := model.User{
@@ -91,6 +97,7 @@ func registerUser(c *gin.Context) {
 	}
 	if err := model.CreateUser(&u); err != nil {
 		c.JSON(500, gin.H{"error": "user creation failed"})
+		return
 	}
 	c.JSON(200, gin.H{
 		"username": username,
@@ -353,6 +360,20 @@ func getTheUser(c *gin.Context) {
 	if err != nil {
 		c.JSON(404, gin.H{})
 	} else {
+		// registered := make([]map[string]interface{}, len(rawSdk))
+		// for i, sdk := range rawSdk {
+		// 	sdks[i] = map[string]interface{}{
+		// 		"id":     sdk.ID,
+		// 		"name":   sdk.Name,
+		// 		"readme": sdk.Readme,
+		// 		"build_ai": map[string]interface{}{
+		// 			"status": sdk.BuildAi.Status,
+		// 		},
+		// 		"run_ai": map[string]interface{}{
+		// 			"status": sdk.RunAi.Status,
+		// 		},
+		// 	}
+		// }
 		c.JSON(200, gin.H{
 			"avatar_url": usr.AvatarURL,
 			"bio":        usr.Bio,
@@ -364,7 +385,7 @@ func getTheUser(c *gin.Context) {
 			"school":              usr.School,
 			"username":            usr.Username,
 			"email":               usr.Email,
-			"contests_registered": "", //usr.ContestsRegistered,
+			"contests_registered": "", //TODO:usr.ContestsRegistered,
 		})
 	}
 }
@@ -387,7 +408,7 @@ func getCurrentUser(c *gin.Context) {
 			"school":              usr.School,
 			"username":            usr.Username,
 			"email":               usr.Email,
-			"contests_registered": "", //usr.ContestsRegistered,
+			"contests_registered": "", //TODO:usr.ContestsRegistered,
 		})
 	}
 }
