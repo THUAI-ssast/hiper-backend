@@ -11,13 +11,15 @@ import (
 )
 
 func createGame(c *gin.Context) {
-	userID := c.MustGet("userID").(uint)
+	inuserID := c.MustGet("userID").(int)
+	userID := uint(inuserID)
 	userr, err := model.GetUserById(userID)
 	if err != nil {
 		c.JSON(422, gin.H{"error": ErrorFor422{
 			Code:  Invalid,
 			Field: "cannot find user",
 		}})
+		c.Abort()
 		return
 	}
 	if !userr.Permissions.CanCreateGameOrContest {
@@ -25,6 +27,7 @@ func createGame(c *gin.Context) {
 			Code:  Invalid,
 			Field: "cannot create game",
 		}})
+		c.Abort()
 		return
 	}
 	var input struct {
@@ -32,6 +35,7 @@ func createGame(c *gin.Context) {
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.Abort()
 		return
 	}
 	tempGame := model.Game{}
@@ -42,6 +46,7 @@ func createGame(c *gin.Context) {
 				Code:  Invalid,
 				Field: "cannot find user",
 			}})
+			c.Abort()
 			return
 		}
 		err = model.CreateGame(&tempGame, []uint{newAdmin.ID})
@@ -50,6 +55,7 @@ func createGame(c *gin.Context) {
 				Code:  Invalid,
 				Field: "cannot create game",
 			}})
+			c.Abort()
 			return
 		}
 	} else {
@@ -60,20 +66,23 @@ func createGame(c *gin.Context) {
 			Code:  Invalid,
 			Field: "cannot create game",
 		}})
+		c.Abort()
 		return
 	}
-	//TODO:TRUE?
 	c.JSON(200, gin.H{"id": tempGame.ID})
+	c.Abort()
 }
 
 func forkGame(c *gin.Context) {
-	userID := c.MustGet("userID").(uint)
+	inuserID := c.MustGet("userID").(int)
+	userID := uint(inuserID)
 	userr, err := model.GetUserById(userID)
 	if err != nil {
 		c.JSON(422, gin.H{"error": ErrorFor422{
 			Code:  Invalid,
 			Field: "cannot find user",
 		}})
+		c.Abort()
 		return
 	}
 	if !userr.Permissions.CanCreateGameOrContest {
@@ -81,12 +90,14 @@ func forkGame(c *gin.Context) {
 			Code:  Invalid,
 			Field: "cannot create game",
 		}})
+		c.Abort()
 		return
 	}
 	gameIDStr := c.Param("id")
 	gameID, err := strconv.ParseUint(gameIDStr, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid game ID"})
+		c.Abort()
 		return
 	}
 	var input struct {
@@ -94,14 +105,17 @@ func forkGame(c *gin.Context) {
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.Abort()
 		return
 	}
 	tempGame, err := model.GetGameById(uint(gameID))
+	tempGame.ID = 0
 	if err != nil {
 		c.JSON(422, gin.H{"error": ErrorFor422{
 			Code:  Invalid,
 			Field: "cannot find game",
 		}})
+		c.Abort()
 		return
 	}
 	if input.NewAdminUsername != "" {
@@ -111,6 +125,7 @@ func forkGame(c *gin.Context) {
 				Code:  Invalid,
 				Field: "cannot find user",
 			}})
+			c.Abort()
 			return
 		}
 		err = model.CreateGame(&tempGame, []uint{newAdmin.ID})
@@ -119,6 +134,7 @@ func forkGame(c *gin.Context) {
 				Code:  Invalid,
 				Field: "cannot create game",
 			}})
+			c.Abort()
 			return
 		}
 	} else {
@@ -129,28 +145,36 @@ func forkGame(c *gin.Context) {
 			Code:  Invalid,
 			Field: "cannot create game",
 		}})
+		c.Abort()
 		return
 	}
-	//TODO:TRUE?
 	c.JSON(200, gin.H{"id": tempGame.ID})
+	c.Abort()
 }
 
 func deleteGame(c *gin.Context) {
-	err := model.DeleteGameById(c.MustGet("gameID").(uint))
+	ingameID := c.MustGet("gameID").(int)
+	gameID := uint(ingameID)
+	err := model.DeleteGameById(gameID)
 	if err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
+		c.Abort()
 		return
 	}
 	c.JSON(200, gin.H{})
+	c.Abort()
 }
 
 func addAdmin(c *gin.Context) {
-	gameID := c.MustGet("gameID").(uint)
+	ingameID := c.MustGet("gameID").(int)
+	gameID := uint(ingameID)
 	var input struct {
 		Username string `json:"username"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.Abort()
+		return
 	}
 	user, err := model.GetUserByUsername(input.Username)
 	if err != nil {
@@ -158,6 +182,8 @@ func addAdmin(c *gin.Context) {
 			Code:  MissingField,
 			Field: "user",
 		}})
+		c.Abort()
+		return
 	}
 	game, err := model.GetGameById(gameID)
 	if err != nil {
@@ -165,6 +191,8 @@ func addAdmin(c *gin.Context) {
 			Code:  MissingField,
 			Field: "game",
 		}})
+		c.Abort()
+		return
 	}
 	err = game.AddAdmin(user.ID)
 	if err != nil {
@@ -172,17 +200,23 @@ func addAdmin(c *gin.Context) {
 			Code:  Invalid,
 			Field: "cannot add admin",
 		}})
+		c.Abort()
+		return
 	}
 	c.JSON(200, gin.H{})
+	c.Abort()
 }
 
 func relinquishAdmin(c *gin.Context) {
-	gameID := c.MustGet("gameID").(uint)
+	ingameID := c.MustGet("gameID").(int)
+	gameID := uint(ingameID)
 	var input struct {
 		Force bool `json:"force"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.Abort()
+		return
 	}
 	userID := c.MustGet("userID").(uint)
 	game, err := model.GetGameById(gameID)
@@ -191,6 +225,8 @@ func relinquishAdmin(c *gin.Context) {
 			Code:  MissingField,
 			Field: "game",
 		}})
+		c.Abort()
+		return
 	}
 	if admins, _ := game.GetAdmins(); len(admins) == 1 {
 		if input.Force {
@@ -200,6 +236,7 @@ func relinquishAdmin(c *gin.Context) {
 					Code:  Invalid,
 					Field: "cannot delete game",
 				}})
+				c.Abort()
 				return
 			}
 		} else {
@@ -207,6 +244,8 @@ func relinquishAdmin(c *gin.Context) {
 				Code:  Invalid,
 				Field: "cannot relinquish the only admin",
 			}})
+			c.Abort()
+			return
 		}
 	}
 	err = game.RemoveAdmin(userID)
@@ -215,17 +254,23 @@ func relinquishAdmin(c *gin.Context) {
 			Code:  Invalid,
 			Field: "cannot remove admin",
 		}})
+		c.Abort()
+		return
 	}
 	c.JSON(200, gin.H{})
+	c.Abort()
 }
 
 func updateGameScript(c *gin.Context) {
-	gameID := c.MustGet("gameID").(uint)
+	ingameID := c.MustGet("gameID").(int)
+	gameID := uint(ingameID)
 	var input struct {
 		Script string `json:"contest_script"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.Abort()
+		return
 	}
 	err := model.UpdateGameById(gameID, map[string]interface{}{"script": input.Script})
 	if err != nil {
@@ -233,12 +278,16 @@ func updateGameScript(c *gin.Context) {
 			Code:  Invalid,
 			Field: "cannot update game script",
 		}})
+		c.Abort()
+		return
 	}
 	c.JSON(200, gin.H{})
+	c.Abort()
 }
 
 func updateGameMetadata(c *gin.Context) {
-	gameID := c.MustGet("gameID").(uint)
+	ingameID := c.MustGet("gameID").(int)
+	gameID := uint(ingameID)
 	var input struct {
 		CoverURL string `json:"cover_url"`
 		Readme   string `json:"readme"`
@@ -246,6 +295,8 @@ func updateGameMetadata(c *gin.Context) {
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.Abort()
+		return
 	}
 	err := model.UpdateGameById(gameID, map[string]interface{}{
 		"cover_url": input.CoverURL,
@@ -257,12 +308,16 @@ func updateGameMetadata(c *gin.Context) {
 			Code:  Invalid,
 			Field: "cannot update game metadata",
 		}})
+		c.Abort()
+		return
 	}
 	c.JSON(200, gin.H{})
+	c.Abort()
 }
 
 func addSdk(c *gin.Context) {
-	// gameID := c.MustGet("gameID").(uint)
+	// ingameID := c.MustGet("gameID").(int)
+	//gameID:= uint(ingameID )
 	var input struct {
 		Name              string                `json:"name"`
 		Description       string                `json:"description"`
@@ -272,6 +327,8 @@ func addSdk(c *gin.Context) {
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.Abort()
+		return
 	}
 	//TODO:往sdk中添加，存储文件至/var/hiper/sdks/sdks:id.xxx
 }
@@ -289,7 +346,8 @@ func updateSdk(c *gin.Context) {
 }
 
 func updateGameStates(c *gin.Context) {
-	gameID := c.MustGet("gameID").(uint)
+	ingameID := c.MustGet("gameID").(int)
+	gameID := uint(ingameID)
 	var input struct {
 		AssignAiEnabled                 *bool `json:"assign_ai_enabled"`
 		CommitAiEnabled                 *bool `json:"commit_ai_enabled"`
@@ -300,6 +358,7 @@ func updateGameStates(c *gin.Context) {
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.Abort()
 		return
 	}
 
@@ -328,9 +387,11 @@ func updateGameStates(c *gin.Context) {
 			Code:  Invalid,
 			Field: "cannot update game states",
 		}})
+		c.Abort()
 		return
 	}
 	c.JSON(200, gin.H{})
+	c.Abort()
 }
 
 func getGameSettings(c *gin.Context) {
@@ -338,45 +399,53 @@ func getGameSettings(c *gin.Context) {
 }
 
 func updateGameLogic(c *gin.Context) {
-	gameID := c.MustGet("gameID").(uint)
+	ingameID := c.MustGet("gameID").(int)
+	gameID := uint(ingameID)
 	var input struct {
 		BuildGameLogicDockerfile string `json:"build_game_logic_dockerfile"`
 		RunGameLogicDockerfile   string `json:"run_game_logic_dockerfile"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.Abort()
+		return
 	}
 	err := model.UpdateGameById(gameID, map[string]interface{}{
-		"build_game_logic_dockerfile": input.BuildGameLogicDockerfile,
-		"run_game_logic_dockerfile":   input.RunGameLogicDockerfile,
+		"game_logic_build_dockerfile": input.BuildGameLogicDockerfile,
+		"game_logic_run_dockerfile":   input.RunGameLogicDockerfile,
 	})
 	if err != nil {
 		c.JSON(422, gin.H{"error": ErrorFor422{
 			Code:  Invalid,
 			Field: "cannot update game logic",
 		}})
+		c.Abort()
 		return
 	}
 	game.RetGameSettings(c)
 }
 
 func updateMatchDetail(c *gin.Context) {
-	gameID := c.MustGet("gameID").(uint)
+	ingameID := c.MustGet("gameID").(int)
+	gameID := uint(ingameID)
 	var input struct {
 		Template string `json:"template"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.Abort()
 	}
 	err := model.UpdateGameById(gameID, map[string]interface{}{
-		"template": input.Template,
+		"match_detail_template": input.Template,
 	})
 	if err != nil {
 		c.JSON(422, gin.H{"error": ErrorFor422{
 			Code:  Invalid,
 			Field: "cannot update match detail",
 		}})
+		c.Abort()
 		return
 	}
 	c.JSON(200, gin.H{})
+	c.Abort()
 }

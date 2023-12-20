@@ -17,6 +17,7 @@ func requestVerificationCode(c *gin.Context) {
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
+		c.Abort()
 		return
 	}
 
@@ -26,11 +27,13 @@ func requestVerificationCode(c *gin.Context) {
 			Code:  Invalid,
 			Field: "email",
 		}})
+		c.Abort()
 		return
 	}
 
 	if err := user.SendVerificationCode(email); err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
+		c.Abort()
 		return
 	}
 
@@ -46,6 +49,7 @@ func registerUser(c *gin.Context) {
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
+		c.Abort()
 		return
 	}
 
@@ -59,6 +63,7 @@ func registerUser(c *gin.Context) {
 			Code:  Invalid,
 			Field: "verification_code",
 		}})
+		c.Abort()
 		return
 	}
 	if !mail.IsValidEmail(email) {
@@ -66,6 +71,7 @@ func registerUser(c *gin.Context) {
 			Code:  Invalid,
 			Field: "email",
 		}})
+		c.Abort()
 		return
 	}
 	if !user.IsValidPassword(password) {
@@ -73,6 +79,7 @@ func registerUser(c *gin.Context) {
 			Code:  Invalid,
 			Field: "password",
 		}})
+		c.Abort()
 		return
 	}
 	if _, err := model.GetUserByEmail(email); err == nil {
@@ -80,6 +87,7 @@ func registerUser(c *gin.Context) {
 			Code:  AlreadyExists,
 			Field: "email",
 		}})
+		c.Abort()
 		return
 	}
 	if _, err := model.GetUserByUsername(username); err == nil {
@@ -87,6 +95,7 @@ func registerUser(c *gin.Context) {
 			Code:  AlreadyExists,
 			Field: "username",
 		}})
+		c.Abort()
 		return
 	}
 
@@ -97,11 +106,13 @@ func registerUser(c *gin.Context) {
 	}
 	if err := model.CreateUser(&u); err != nil {
 		c.JSON(500, gin.H{"error": "user creation failed"})
+		c.Abort()
 		return
 	}
 	c.JSON(200, gin.H{
 		"username": username,
 	})
+	c.Abort()
 
 }
 
@@ -113,6 +124,8 @@ func resetEmail(c *gin.Context) {
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
+		c.Abort()
+		return
 	}
 
 	email := input.Email
@@ -124,36 +137,49 @@ func resetEmail(c *gin.Context) {
 			Field:  "new_email",
 			Detail: "new email is the same as the old one",
 		}})
+		c.Abort()
+		return
 	}
 	if _, err := model.GetUserByEmail(email); err != nil {
 		c.JSON(422, gin.H{"error": ErrorFor422{
 			Code:  Invalid,
 			Field: "email",
 		}})
+		c.Abort()
+		return
 	}
 	if !mail.IsValidEmail(newEmail) {
 		c.JSON(422, gin.H{"error": ErrorFor422{
 			Code:  Invalid,
 			Field: "new_email",
 		}})
+		c.Abort()
+		return
 	}
 	if !user.IsCodeMatch(code, email) {
 		c.JSON(422, gin.H{"error": ErrorFor422{
 			Code:  Invalid,
 			Field: "verification_code",
 		}})
+		c.Abort()
+		return
 	}
 	if _, err := model.GetUserByEmail(newEmail); err != nil {
 		c.JSON(422, gin.H{"error": ErrorFor422{
 			Code:  AlreadyExists,
 			Field: "new_email",
 		}})
+		c.Abort()
+		return
 	}
 
 	if model.UpdateUserByEmail(email, map[string]interface{}{"email": newEmail}) != nil {
 		c.JSON(500, gin.H{"error": "Failed to update user info"})
+		c.Abort()
+		return
 	}
 	c.JSON(200, gin.H{})
+	c.Abort()
 
 }
 
@@ -165,6 +191,8 @@ func resetPassword(c *gin.Context) {
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
+		c.Abort()
+		return
 	}
 
 	email := input.Email
@@ -175,24 +203,33 @@ func resetPassword(c *gin.Context) {
 			Code:  Invalid,
 			Field: "email",
 		}})
+		c.Abort()
+		return
 	}
 	if !user.IsValidPassword(password) {
 		c.JSON(422, gin.H{"error": ErrorFor422{
 			Code:  Invalid,
 			Field: "new_password",
 		}})
+		c.Abort()
+		return
 	}
 	if !user.IsCodeMatch(code, email) {
 		c.JSON(422, gin.H{"error": ErrorFor422{
 			Code:  Invalid,
 			Field: "verification_code",
 		}})
+		c.Abort()
+		return
 	}
 
 	if model.UpdateUserByEmail(email, map[string]interface{}{"password": user.HashPassword(password)}) != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user info"})
+		c.Abort()
+		return
 	}
 	c.JSON(200, gin.H{})
+	c.Abort()
 }
 
 func login(c *gin.Context) {
@@ -203,6 +240,8 @@ func login(c *gin.Context) {
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.Abort()
+		return
 	}
 
 	email := input.Email
@@ -214,6 +253,8 @@ func login(c *gin.Context) {
 			Code:  MissingField,
 			Field: "email or username",
 		}})
+		c.Abort()
+		return
 	}
 
 	if username != "" {
@@ -225,11 +266,15 @@ func login(c *gin.Context) {
 				Code:  Invalid,
 				Field: "password",
 			}})
+			c.Abort()
+			return
 		}
 		token, _ := GenToken((int64)(userID))
 		c.JSON(200, gin.H{
 			"access_token": token,
 		})
+		c.Abort()
+		return
 	} else {
 		// login by email
 		var userID uint
@@ -239,17 +284,21 @@ func login(c *gin.Context) {
 				Code:  Invalid,
 				Field: "password",
 			}})
+			c.Abort()
+			return
 		}
 		token, _ := GenToken((int64)(userID))
 		c.JSON(200, gin.H{
 			"access_token": token,
 		})
+		c.Abort()
 	}
 }
 
 func logout(c *gin.Context) {
 	// nothing to do now
 	c.JSON(200, gin.H{})
+	c.Abort()
 }
 
 func searchUsers(c *gin.Context) {
@@ -260,6 +309,8 @@ func searchUsers(c *gin.Context) {
 		userID, err = strconv.Atoi(userIDStr)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+			c.Abort()
+			return
 		}
 	}
 	email := c.Query("email")
@@ -270,6 +321,8 @@ func searchUsers(c *gin.Context) {
 		users, err = model.SearchUsers("", []string{"email"})
 		if err != nil {
 			c.JSON(404, gin.H{})
+			c.Abort()
+			return
 		}
 		for _, usr := range users {
 			answer = append(answer, map[string]interface{}{
@@ -287,10 +340,13 @@ func searchUsers(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"answer": answer,
 		})
+		c.Abort()
 	} else if userID != 0 {
 		usr, err := model.GetUserById((uint)(userID))
 		if err != nil {
 			c.JSON(404, gin.H{})
+			c.Abort()
+			return
 		}
 		users = append(users, usr)
 		for _, usr := range users {
@@ -309,10 +365,13 @@ func searchUsers(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"answer": answer,
 		})
+		c.Abort()
 	} else if username != "" {
 		users, err = model.SearchUsers(username, []string{"username"})
 		if err != nil {
 			c.JSON(404, gin.H{})
+			c.Abort()
+			return
 		}
 		for _, usr := range users {
 			answer = append(answer, map[string]interface{}{
@@ -330,10 +389,13 @@ func searchUsers(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"answer": answer,
 		})
+		c.Abort()
 	} else {
 		users, err = model.SearchUsers(email, []string{"email"})
 		if err != nil {
 			c.JSON(404, gin.H{})
+			c.Abort()
+			return
 		}
 		for _, usr := range users {
 			answer = append(answer, map[string]interface{}{
@@ -351,6 +413,7 @@ func searchUsers(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"answer": answer,
 		})
+		c.Abort()
 	}
 }
 
@@ -359,6 +422,8 @@ func getTheUser(c *gin.Context) {
 	usr, err := model.GetUserByUsername(username)
 	if err != nil {
 		c.JSON(404, gin.H{})
+		c.Abort()
+		return
 	} else {
 		// registered := make([]map[string]interface{}, len(rawSdk))
 		// for i, sdk := range rawSdk {
@@ -387,6 +452,7 @@ func getTheUser(c *gin.Context) {
 			"email":               usr.Email,
 			"contests_registered": "", //TODO:usr.ContestsRegistered,
 		})
+		c.Abort()
 	}
 }
 
@@ -396,6 +462,8 @@ func getCurrentUser(c *gin.Context) {
 	usr, err := model.GetUserById((uint)(userID))
 	if err != nil {
 		c.JSON(404, gin.H{})
+		c.Abort()
+		return
 	} else {
 		c.JSON(200, gin.H{
 			"avatar_url": usr.AvatarURL,
@@ -410,6 +478,7 @@ func getCurrentUser(c *gin.Context) {
 			"email":               usr.Email,
 			"contests_registered": "", //TODO:usr.ContestsRegistered,
 		})
+		c.Abort()
 	}
 }
 
@@ -419,6 +488,8 @@ func updateCurrentUser(c *gin.Context) {
 	_, err := model.GetUserById((uint)(userID))
 	if err != nil {
 		c.JSON(404, gin.H{})
+		c.Abort()
+		return
 	} else {
 		var input struct {
 			Avatar_url string `json:"avatar_url"`
@@ -433,6 +504,8 @@ func updateCurrentUser(c *gin.Context) {
 				Code:  Invalid,
 				Field: "json",
 			}})
+			c.Abort()
+			return
 		}
 
 		if usr, err := model.GetUserByUsername(input.Username, "ID"); err == nil && usr.ID != (uint)(userID) {
@@ -440,6 +513,8 @@ func updateCurrentUser(c *gin.Context) {
 				Code:  AlreadyExists,
 				Field: "username",
 			}})
+			c.Abort()
+			return
 		}
 
 		if !user.IsValidURL(input.Avatar_url) {
@@ -447,6 +522,8 @@ func updateCurrentUser(c *gin.Context) {
 				Code:  Invalid,
 				Field: "avatar_url",
 			}})
+			c.Abort()
+			return
 		}
 
 		updates := map[string]interface{}{
@@ -464,6 +541,8 @@ func updateCurrentUser(c *gin.Context) {
 					Code:  Invalid,
 					Field: key,
 				}})
+				c.Abort()
+				return
 			}
 		}
 
@@ -474,6 +553,8 @@ func updateCurrentUser(c *gin.Context) {
 					Code:  Invalid,
 					Field: "update failed",
 				}})
+				c.Abort()
+				return
 			}
 		}
 		usr, _ := model.GetUserById((uint)(userID))
@@ -490,5 +571,6 @@ func updateCurrentUser(c *gin.Context) {
 			"contests_registered": "", //usr.ContestsRegistered,
 			"email":               usr.Email,
 		})
+		c.Abort()
 	}
 }

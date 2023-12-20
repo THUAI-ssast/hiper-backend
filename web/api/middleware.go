@@ -76,10 +76,8 @@ func loginVerify() gin.HandlerFunc {
 
 func privilegeCheck() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		gameID := c.Param("gameID") // 从路径中获取 gameID
+		gameID := c.Param("id") // 从路径中获取 gameID
 		id, _ := strconv.ParseUint(gameID, 10, 32)
-		c.Set("gameID", (int)(id))
-		c.Next()
 		game, err := model.GetGameById((uint)(id)) // 使用 gameID 获取 game
 		if err != nil {
 			c.JSON(422, gin.H{"error": ErrorFor422{
@@ -102,6 +100,7 @@ func privilegeCheck() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+		c.Set("gameID", (int)(id))
 		c.Next()
 	}
 }

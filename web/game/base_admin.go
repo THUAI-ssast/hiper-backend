@@ -21,13 +21,15 @@ const (
 )
 
 func RetGameSettings(c *gin.Context) {
-	gameID := c.MustGet("gameID").(uint)
+	ingameID := c.MustGet("gameID").(int)
+	gameID := uint(ingameID)
 	game, err := model.GetGameById(gameID)
 	if err != nil {
 		c.JSON(422, gin.H{"error": ErrorFor422{
 			Code:  Invalid,
 			Field: "cannot find game",
 		}})
+		c.Abort()
 		return
 	}
 	admins := make([]map[string]interface{}, len(game.Admins))
@@ -51,6 +53,7 @@ func RetGameSettings(c *gin.Context) {
 			Code:  Invalid,
 			Field: "cannot find sdks",
 		}})
+		c.Abort()
 		return
 	}
 	sdks := make([]map[string]interface{}, len(rawSdk))
@@ -92,12 +95,14 @@ func RetGameSettings(c *gin.Context) {
 		"game_assets": map[string]interface{}{
 			"game_logic": map[string]interface{}{
 				"build_game_logic": map[string]interface{}{
+					"dockerfile": game.GameLogic.Build.Dockerfile,
 					"status": map[string]interface{}{
 						"state": game.GameLogic.Build.Status.State,
 						"msg":   game.GameLogic.Build.Status.Msg,
 					},
 				},
 				"run_game_logic": map[string]interface{}{
+					"dockerfile": game.GameLogic.Build.Dockerfile,
 					"status": map[string]interface{}{
 						"state": game.GameLogic.Run.Status.State,
 						"msg":   game.GameLogic.Run.Status.Msg,
@@ -109,4 +114,5 @@ func RetGameSettings(c *gin.Context) {
 			},
 		},
 	})
+	c.Abort()
 }

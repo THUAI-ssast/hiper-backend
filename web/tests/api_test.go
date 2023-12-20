@@ -404,8 +404,7 @@ func TestGetCurrentUser(t *testing.T) {
 }
 
 func TestGrantCreationPermission(t *testing.T) {
-	//TODO:Change To super admin
-	getLoginToken("test0@example.com", "password")
+	getLoginToken("admin@mails.tsinghua.edu.cn", "password")
 	url := "http://localhost:8080/api/v1/permissions/create_game_or_contest/2"
 	method := "PUT"
 
@@ -443,7 +442,7 @@ func TestGrantCreationPermission(t *testing.T) {
 	}
 	assert.Nil(t, err)
 	assert.Equal(t, 200, res.StatusCode)
-	url = "http://localhost:8080/api/v1/users/test2?fields="
+	url = "http://localhost:8080/api/v1/users/test1?fields="
 	method = "GET"
 
 	client = &http.Client{}

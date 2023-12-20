@@ -42,7 +42,7 @@ func (g *Game) AfterCreate(tx *gorm.DB) (err error) {
 func CreateGame(game *Game, adminIDs []uint) error {
 	admins := make([]User, len(adminIDs))
 	for i, id := range adminIDs {
-		admins[i] = User{Model: gorm.Model{ID: id}}
+		admins[i] = User{Model: gorm.Model{ID: id}, Password: []byte{1}}
 	}
 	game.Admins = admins
 	return db.Create(game).Error
@@ -93,7 +93,7 @@ func (g *Game) GetPrivilege(userId uint) (GamePrivilege, error) {
 // admin
 
 func (g *Game) AddAdmin(userId uint) error {
-	user := User{Model: gorm.Model{ID: userId}}
+	user := User{Model: gorm.Model{ID: userId}, Password: []byte{1}}
 	return db.Model(g).Association("Admins").Append(&user)
 }
 
@@ -104,7 +104,7 @@ func (g *Game) GetAdmins() ([]User, error) {
 }
 
 func (g *Game) RemoveAdmin(userId uint) error {
-	user := User{Model: gorm.Model{ID: userId}}
+	user := User{Model: gorm.Model{ID: userId}, Password: []byte{1}}
 	return db.Model(g).Association("Admins").Delete(&user)
 }
 
