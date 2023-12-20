@@ -121,7 +121,7 @@ func addGameRoutes(r *gin.Engine) {
 				auth.POST("/games/:id/admins", func(c *gin.Context) {
 					addAdmin(c)
 				})
-				auth.DELETE("/games/:id/admins", func(c *gin.Context) {
+				auth.DELETE("/games/:id/admin", func(c *gin.Context) {
 					relinquishAdmin(c)
 				})
 				auth.PUT("/games/:id/contest_script", func(c *gin.Context) {
