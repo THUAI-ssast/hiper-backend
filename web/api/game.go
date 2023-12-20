@@ -16,21 +16,16 @@ func createGame(c *gin.Context) {
 	userID := uint(inuserID)
 	userr, err := model.GetUserById(userID)
 	if err != nil {
-		c.JSON(422, gin.H{"error": ErrorFor422{
-			Code:  Invalid,
-			Field: "cannot find user",
-		}})
+		c.JSON(401, gin.H{})
 		c.Abort()
 		return
 	}
 	if !userr.Permissions.CanCreateGameOrContest {
-		c.JSON(422, gin.H{"error": ErrorFor422{
-			Code:  Invalid,
-			Field: "cannot create game",
-		}})
+		c.JSON(403, gin.H{})
 		c.Abort()
 		return
 	}
+
 	var input struct {
 		NewAdminUsername string `json:"new_admin_username"`
 	}
@@ -40,7 +35,9 @@ func createGame(c *gin.Context) {
 		return
 	}
 	tempGame := model.Game{}
-	if input.NewAdminUsername != "" {
+	if input.NewAdminUsername == "" {
+		err = model.CreateGame(&tempGame, []uint{userID})
+	} else {
 		newAdmin, err := model.GetUserByUsername(input.NewAdminUsername)
 		if err != nil {
 			c.JSON(422, gin.H{"error": ErrorFor422{
@@ -51,22 +48,9 @@ func createGame(c *gin.Context) {
 			return
 		}
 		err = model.CreateGame(&tempGame, []uint{newAdmin.ID})
-		if err != nil {
-			c.JSON(422, gin.H{"error": ErrorFor422{
-				Code:  Invalid,
-				Field: "cannot create game",
-			}})
-			c.Abort()
-			return
-		}
-	} else {
-		err = model.CreateGame(&tempGame, []uint{userID})
 	}
 	if err != nil {
-		c.JSON(422, gin.H{"error": ErrorFor422{
-			Code:  Invalid,
-			Field: "cannot create game",
-		}})
+		c.JSON(500, gin.H{"error": "failed to create game"})
 		c.Abort()
 		return
 	}
@@ -79,18 +63,12 @@ func forkGame(c *gin.Context) {
 	userID := uint(inuserID)
 	userr, err := model.GetUserById(userID)
 	if err != nil {
-		c.JSON(422, gin.H{"error": ErrorFor422{
-			Code:  Invalid,
-			Field: "cannot find user",
-		}})
+		c.JSON(401, gin.H{})
 		c.Abort()
 		return
 	}
 	if !userr.Permissions.CanCreateGameOrContest {
-		c.JSON(422, gin.H{"error": ErrorFor422{
-			Code:  Invalid,
-			Field: "cannot create game",
-		}})
+		c.JSON(403, gin.H{})
 		c.Abort()
 		return
 	}
@@ -119,7 +97,9 @@ func forkGame(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	if input.NewAdminUsername != "" {
+	if input.NewAdminUsername == "" {
+		err = model.CreateGame(&tempGame, []uint{userID})
+	} else {
 		newAdmin, err := model.GetUserByUsername(input.NewAdminUsername)
 		if err != nil {
 			c.JSON(422, gin.H{"error": ErrorFor422{
@@ -130,22 +110,9 @@ func forkGame(c *gin.Context) {
 			return
 		}
 		err = model.CreateGame(&tempGame, []uint{newAdmin.ID})
-		if err != nil {
-			c.JSON(422, gin.H{"error": ErrorFor422{
-				Code:  Invalid,
-				Field: "cannot create game",
-			}})
-			c.Abort()
-			return
-		}
-	} else {
-		err = model.CreateGame(&tempGame, []uint{userID})
 	}
 	if err != nil {
-		c.JSON(422, gin.H{"error": ErrorFor422{
-			Code:  Invalid,
-			Field: "cannot create game",
-		}})
+		c.JSON(500, gin.H{"error": "failed to create game"})
 		c.Abort()
 		return
 	}
