@@ -84,13 +84,8 @@ func registerUser(c *gin.Context) {
 		}})
 	}
 
-	u := model.User{
-		Email:    email,
-		Password: user.HashPassword(password),
-		Username: username,
-	}
-	if err := model.CreateUser(&u); err != nil {
-		c.JSON(500, gin.H{"error": "user creation failed"})
+	if _, err := user.RegisterUser(username, email, password); err != nil {
+		c.JSON(500, gin.H{"error": "Failed to register user"})
 	}
 	c.JSON(200, gin.H{
 		"username": username,
