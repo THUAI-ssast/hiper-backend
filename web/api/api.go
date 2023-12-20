@@ -112,6 +112,30 @@ func addGameRoutes(r *gin.Engine) {
 			auth.POST("/games/:id/fork", func(c *gin.Context) {
 				forkGame(c)
 			})
+			auth.GET("/games", func(c *gin.Context) {
+				getGames(c)
+			})
+			auth.GET("/games/{id}", func(c *gin.Context) {
+				getTheGame(c)
+			})
+			auth.GET("/games/{id}/ais", func(c *gin.Context) {
+				getAis(c)
+			})
+			auth.POST("/games/{id}/ais", func(c *gin.Context) {
+				commitAi(c)
+			})
+			auth.GET("/games/{id}/ais/{ai_id}", func(c *gin.Context) {
+				getTheAI(c)
+			})
+			auth.GET("/games/{id}/ais/{ai_id}/file", func(c *gin.Context) {
+				downloadTheAI(c)
+			})
+			auth.PUT("/games/{id}/ais/{ai_id}/note", func(c *gin.Context) {
+				editAiNote(c)
+			})
+			auth.GET("/games/{id}/contestants", func(c *gin.Context) {
+				getContestants(c)
+			})
 			//此后的路由都需要验证是否是管理员.在其内部，我们可以使用gameID := c.MustGet("gameID").(int)来获取当前游戏的ID
 			auth = auth.Group("/", privilegeCheck())
 			{
