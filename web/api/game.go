@@ -632,6 +632,10 @@ func getTheAI(c *gin.Context) {
 	}
 
 	ai_id, err := strconv.Atoi(c.Param("ai_id"))
+	if err != nil {
+		c.JSON(400, gin.H{})
+		return
+	}
 	ai, err := game.GetAiById(uint(ai_id), true)
 	if err != nil {
 		c.JSON(404, gin.H{"error": "AI not found"})
@@ -660,7 +664,15 @@ func downloadTheAI(c *gin.Context) {
 	}
 
 	ai_id, err := strconv.Atoi(c.Param("ai_id"))
+	if err != nil {
+		c.JSON(400, gin.H{})
+		return
+	}
 	ai, err := game.GetAiById(uint(ai_id), true)
+	if err != nil {
+		c.JSON(404, gin.H{"error": "AI not found"})
+		return
+	}
 	file, err := ai.GetFile()
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "file not found"})

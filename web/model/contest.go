@@ -27,6 +27,17 @@ type Registration struct {
 }
 
 // TODO: add CRUD functions for contest
+func GetContests(fields ...string) ([]Contest, error) {
+	var contests []Contest
+	err := db.Select(fields).Find(&contests).Error
+	return contests, err
+}
+
+func GetContestById(id uint, fields ...string) (Contest, error) {
+	var contest Contest
+	err := db.Select(fields).First(&contest, id).Error
+	return contest, err
+}
 
 func GetContestPrivilege(contestId uint, userId uint) (ContestPrivilege, error) {
 	// TODO: implement

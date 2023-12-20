@@ -51,4 +51,8 @@ func getContestants(filter map[string]interface{}, fields ...string) ([]Contesta
 	return contestants, err
 }
 
+func GetContestantsByUserId(userId uint, fields ...string) ([]Contestant, error) {
+	return getContestants(map[string]interface{}{"user_id": userId}, fields...)
+}
+
 // TODO: add CRUD functions for contestant
