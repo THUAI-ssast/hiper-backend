@@ -9,6 +9,7 @@ services:
     restart: always
     volumes:
       - hiper_data:/var/hiper
+      - ./web/config.toml:/srv/config.toml
     ports:
       - "8080:8080"
     networks:
