@@ -105,8 +105,16 @@ func (u *User) GetContestAdmins(fields ...string) ([]Contest, error) {
 
 // contestant
 
-func (u *User) GetContestants(fields ...string) ([]Contestant, error) {
-	return getContestants(map[string]interface{}{"user_id": u.ID}, fields...)
+// GetContestants returns the contestants of the user.
+// If `preload` is true, contest information will be preloaded.
+func (u *User) GetContestants(preload bool) ([]Contestant, error) {
+	if preload {
+		return getContestants(map[string]interface{}{"user_id": u.ID}, preloadQuery{
+			"Contest", []string{"id", "cover_url", "title", "public_match_enabled"},
+		})
+	} else {
+		return getContestants(map[string]interface{}{"user_id": u.ID}, preloadQuery{})
+	}
 }
 
 // Irregular CRUD

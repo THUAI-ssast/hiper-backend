@@ -14,6 +14,11 @@ type QueryParams struct {
 	Fields []string
 }
 
+type preloadQuery struct {
+	Table   string
+	Columns []string
+}
+
 func SaveVerificationCode(code string, email string, expireInMinutes int) error {
 	err := rdb.Set(ctx, email, code, time.Duration(expireInMinutes)*time.Minute).Err()
 	if err != nil {
