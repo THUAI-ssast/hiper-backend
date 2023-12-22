@@ -48,6 +48,11 @@ func createGame(c *gin.Context) {
 			return
 		}
 		err = model.CreateGame(&tempGame, []uint{newAdmin.ID})
+		if err != nil {
+			c.JSON(500, gin.H{"error": "failed to create game"})
+			c.Abort()
+			return
+		}
 	}
 	if err != nil {
 		c.JSON(500, gin.H{"error": "failed to create game"})
@@ -110,6 +115,11 @@ func forkGame(c *gin.Context) {
 			return
 		}
 		err = model.CreateGame(&tempGame, []uint{newAdmin.ID})
+		if err != nil {
+			c.JSON(500, gin.H{"error": "failed to create game"})
+			c.Abort()
+			return
+		}
 	}
 	if err != nil {
 		c.JSON(500, gin.H{"error": "failed to create game"})
