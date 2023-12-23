@@ -6,9 +6,7 @@ import (
 
 type Contest struct {
 	gorm.Model
-
-	BaseContestID uint
-	BaseContest   BaseContest `gorm:"foreignKey:BaseContestID"`
+	BaseContest BaseContest `gorm:"foreignKey:ID"`
 
 	Metadata Metadata `gorm:"embedded"`
 	Admins   []User   `gorm:"many2many:contest_admins;"`
@@ -34,8 +32,8 @@ type Registration struct {
 
 func (c *Contest) Create(gameID uint, adminIDs []uint) error {
 	// link a base contest or create a new one
-	if c.BaseContestID != 0 {
-		if err := db.First(&c.BaseContest, c.BaseContestID).Error; err != nil {
+	if c.ID != 0 {
+		if err := db.First(&c.BaseContest, c.ID).Error; err != nil {
 			return err
 		}
 	} else {
@@ -45,7 +43,7 @@ func (c *Contest) Create(gameID uint, adminIDs []uint) error {
 		}
 	}
 	// create contest
-	c.BaseContestID = c.BaseContest.ID
+	c.ID = c.BaseContest.ID
 	for _, id := range adminIDs {
 		user := User{Model: gorm.Model{ID: id}}
 		c.Admins = append(c.Admins, user)

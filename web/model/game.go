@@ -6,9 +6,7 @@ import (
 
 type Game struct {
 	gorm.Model
-
-	BaseContestID uint
-	BaseContest   BaseContest `gorm:"foreignKey:BaseContestID"`
+	BaseContest BaseContest `gorm:"foreignKey:ID"`
 
 	Metadata Metadata `gorm:"embedded"`
 	Admins   []User   `gorm:"many2many:game_admins;"`
@@ -39,8 +37,8 @@ type MatchDetail struct {
 
 func (g *Game) Create(adminIDs []uint) error {
 	// link a base contest or create a new one
-	if g.BaseContestID != 0 {
-		if err := db.First(&g.BaseContest, g.BaseContestID).Error; err != nil {
+	if g.ID != 0 {
+		if err := db.First(&g.BaseContest, g.ID).Error; err != nil {
 			return err
 		}
 	} else {
@@ -49,7 +47,7 @@ func (g *Game) Create(adminIDs []uint) error {
 		}
 	}
 	// create game
-	g.BaseContestID = g.BaseContest.ID
+	g.ID = g.BaseContest.ID
 	for _, id := range adminIDs {
 		user := User{Model: gorm.Model{ID: id}}
 		g.Admins = append(g.Admins, user)
