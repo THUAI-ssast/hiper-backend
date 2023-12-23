@@ -63,14 +63,6 @@ type DockerTask struct {
 
 // contestant
 
-func (bc *BaseContest) CreateContestant(userID uint) error {
-	c := Contestant{
-		BaseContestID: bc.ID,
-		UserID:        userID,
-	}
-	return c.Create()
-}
-
 // Sorted by points in descending order.
 // Currently supported preloads: "User", "AssignedAi"
 func (bc *BaseContest) GetContestants(preloads []preloadQuery) ([]Contestant, error) {
