@@ -28,8 +28,6 @@ type Registration struct {
 	Password            string
 }
 
-// CRUD: Create
-
 func (c *Contest) Create(gameID uint, adminIDs []uint) error {
 	// link a base contest or create a new one
 	if c.ID != 0 {

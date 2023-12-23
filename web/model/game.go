@@ -113,7 +113,6 @@ func (g *Game) GetPrivilege(userID uint) (GamePrivilege, error) {
 }
 
 // admin
-
 func (g *Game) AddAdmin(userId uint) error {
 	user := User{Model: gorm.Model{ID: userId}, Password: []byte{1}}
 	return db.Model(g).Association("Admins").Append(&user)
@@ -130,4 +129,42 @@ func (g *Game) RemoveAdmin(userId uint) error {
 	return db.Model(g).Association("Admins").Delete(&user)
 }
 
-// TODO:game logic files
+// contestant
+
+// GetContestants returns all contestants in the game.
+// By default, sorted by points in descending order.
+func (g *Game) GetContestants(fields ...string) ([]Contestant, error) {
+	return getContestants(map[string]interface{}{"game_id": g.ID, "contest_id": 0}, fields...)
+}
+
+// ai
+
+func (g *Game) GetAis(query QueryParams, preload bool) (ais []Ai, count int64, err error) {
+	if query.Filter == nil {
+		query.Filter = make(map[string]interface{})
+	}
+	query.Filter["game_id"] = g.ID
+	query.Filter["contest_id"] = 0
+	return GetAis(query, preload)
+}
+
+func (g *Game) GetAiById(id uint, preload bool, fields ...string) (Ai, error) {
+	return getAi(map[string]interface{}{"game_id": g.ID, "contest_id": 0, "Number": id}, preload, fields...)
+}
+
+// match
+
+func (g *Game) GetMatches(query QueryParams) (matches []Match, count int64, err error) {
+	if query.Filter == nil {
+		query.Filter = make(map[string]interface{})
+	}
+	query.Filter["game_id"] = g.ID
+	query.Filter["contest_id"] = 0
+	return GetMatches(query)
+}
+
+// sdk
+
+func (g *Game) GetSdks(fields ...string) ([]Sdk, error) {
+	return GetSdks(map[string]interface{}{"game_id": g.ID, "contest_id": 0}, fields...)
+}

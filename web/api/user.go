@@ -101,6 +101,8 @@ func registerUser(c *gin.Context) {
 
 	if _, err := user.RegisterUser(username, email, password); err != nil {
 		c.JSON(500, gin.H{"error": "Failed to register user"})
+		c.Abort()
+		return
 	}
 	c.JSON(200, gin.H{
 		"username": username,
@@ -157,7 +159,7 @@ func resetEmail(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	if _, err := model.GetUserByEmail(newEmail); err != nil {
+	if _, err := model.GetUserByEmail(newEmail); err == nil {
 		c.JSON(422, gin.H{"error": ErrorFor422{
 			Code:  AlreadyExists,
 			Field: "new_email",
@@ -418,46 +420,47 @@ func getTheUser(c *gin.Context) {
 		c.Abort()
 		return
 	} else {
-		// contestant,err:=model.GetContestantsByUserId(usr.ID)
-		// if err != nil {
-		// 	c.JSON(404, gin.H{})
-		// 	c.Abort()
-		// 	return
-		// }
-		// registered := make([]map[string]interface{},0)
-		// for _, ct := range contestant {
-		// 	if ct.ContestId == 0 {
-		// 		continue
-		// 	}
-		// 	game, err := model.GetContestById(ct.ContestId)
-		// 	if err != nil {
-		// 		c.JSON(404, gin.H{})
-		// 		c.Abort()
-		// 		return
-		// 	}
-		// 	myPrivilege := "registered"
-		// 	if  GetPrivilege{//TODO:判断是否为管理员
-		// 		myPrivilege = "admin"
-		// 	}
-		// 	registered= append(registered, map[string]interface{}{
-		// 		"game_id": ct.ContestId,
-		// 		"metadata": map[string]interface{}{
-		// 			"cover_url": game.Metadata.CoverUrl,
-		// 			"readme":    game.Metadata.Readme,
-		// 			"title":     game.Metadata.Title,
-		// 		},
-		// 		"states": map[string]interface{}{
-		// 			"commit_ai_enabled":    game.States.CommitAiEnabled,
-		// 			"assign_ai_enabled":    game.States.AssignAiEnabled,
-		// 			"public_match_enabled": game.States.PublicMatchEnabled,
-		// 			"contest_script_environment_enabled": game.States.ContestScriptEnvironmentEnabled,
-		// 			"private_match_enabled": game.States.PrivateMatchEnabled,
-		// 			"test_match_enabled":    game.States.TestMatchEnabled,
-		// 		},
-		// 		"id": ct.ID,
-		// 		"my_privilege":myPrivilege,
-		// 	})
-		// }
+		contestant, err := model.GetContestantsByUserId(usr.ID)
+		if err != nil {
+			c.JSON(404, gin.H{})
+			c.Abort()
+			return
+		}
+		registered := make([]map[string]interface{}, 0)
+		for _, ct := range contestant {
+			if ct.ContestId == 0 {
+				continue
+			}
+			game, err := model.GetContestById(ct.ContestId)
+			if err != nil {
+				c.JSON(404, gin.H{})
+				c.Abort()
+				return
+			}
+			myPrivilege := "registered"
+			pri, _ := model.GetContestPrivilege(ct.ContestId, usr.ID)
+			if pri == "admin" {
+				myPrivilege = "admin"
+			}
+			registered = append(registered, map[string]interface{}{
+				"game_id": ct.ContestId,
+				"metadata": map[string]interface{}{
+					"cover_url": game.Metadata.CoverUrl,
+					"readme":    game.Metadata.Readme,
+					"title":     game.Metadata.Title,
+				},
+				"states": map[string]interface{}{
+					"commit_ai_enabled":                  game.States.CommitAiEnabled,
+					"assign_ai_enabled":                  game.States.AssignAiEnabled,
+					"public_match_enabled":               game.States.PublicMatchEnabled,
+					"contest_script_environment_enabled": game.States.ContestScriptEnvironmentEnabled,
+					"private_match_enabled":              game.States.PrivateMatchEnabled,
+					"test_match_enabled":                 game.States.TestMatchEnabled,
+				},
+				"id":           ct.ID,
+				"my_privilege": myPrivilege,
+			})
+		}
 		c.JSON(200, gin.H{
 			"avatar_url": usr.AvatarURL,
 			"bio":        usr.Bio,
@@ -469,7 +472,7 @@ func getTheUser(c *gin.Context) {
 			"school":              usr.School,
 			"username":            usr.Username,
 			"email":               usr.Email,
-			"contests_registered": "", //TODO:usr.ContestsRegistered,
+			"contests_registered": registered,
 		})
 		c.Abort()
 	}
@@ -484,6 +487,47 @@ func getCurrentUser(c *gin.Context) {
 		c.Abort()
 		return
 	} else {
+		contestant, err := model.GetContestantsByUserId(usr.ID)
+		if err != nil {
+			c.JSON(404, gin.H{})
+			c.Abort()
+			return
+		}
+		registered := make([]map[string]interface{}, 0)
+		for _, ct := range contestant {
+			if ct.ContestId == 0 {
+				continue
+			}
+			game, err := model.GetContestById(ct.ContestId)
+			if err != nil {
+				c.JSON(404, gin.H{})
+				c.Abort()
+				return
+			}
+			myPrivilege := "registered"
+			pri, _ := model.GetContestPrivilege(ct.ContestId, usr.ID)
+			if pri == "admin" {
+				myPrivilege = "admin"
+			}
+			registered = append(registered, map[string]interface{}{
+				"game_id": ct.ContestId,
+				"metadata": map[string]interface{}{
+					"cover_url": game.Metadata.CoverUrl,
+					"readme":    game.Metadata.Readme,
+					"title":     game.Metadata.Title,
+				},
+				"states": map[string]interface{}{
+					"commit_ai_enabled":                  game.States.CommitAiEnabled,
+					"assign_ai_enabled":                  game.States.AssignAiEnabled,
+					"public_match_enabled":               game.States.PublicMatchEnabled,
+					"contest_script_environment_enabled": game.States.ContestScriptEnvironmentEnabled,
+					"private_match_enabled":              game.States.PrivateMatchEnabled,
+					"test_match_enabled":                 game.States.TestMatchEnabled,
+				},
+				"id":           ct.ID,
+				"my_privilege": myPrivilege,
+			})
+		}
 		c.JSON(200, gin.H{
 			"avatar_url": usr.AvatarURL,
 			"bio":        usr.Bio,
@@ -495,7 +539,7 @@ func getCurrentUser(c *gin.Context) {
 			"school":              usr.School,
 			"username":            usr.Username,
 			"email":               usr.Email,
-			"contests_registered": "", //TODO:usr.ContestsRegistered,
+			"contests_registered": registered,
 		})
 		c.Abort()
 	}
