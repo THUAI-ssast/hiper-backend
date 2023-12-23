@@ -6,9 +6,12 @@ import (
 
 type Game struct {
 	gorm.Model
-	BaseContest
 
-	Admins []User `gorm:"many2many:game_admins;"`
+	BaseContestId uint
+	BaseContest   BaseContest `gorm:"foreignKey:BaseContestId"`
+
+	Metadata Metadata `gorm:"embedded"`
+	Admins   []User   `gorm:"many2many:game_admins;"`
 
 	// game assets
 	GameLogic   GameLogic   `gorm:"embedded;embeddedPrefix:game_logic_"`
@@ -34,32 +37,45 @@ type MatchDetail struct {
 
 // CRUD: Create
 
-func (g *Game) AfterCreate(tx *gorm.DB) (err error) {
-	g.GameId = g.ID
-	return tx.Save(g).Error
-}
-
-func CreateGame(game *Game, adminIDs []uint) error {
-	admins := make([]User, len(adminIDs))
-	for i, id := range adminIDs {
-		admins[i] = User{Model: gorm.Model{ID: id}}
+func (g *Game) Create(adminIds []uint) error {
+	// link a base contest or create a new one
+	if g.BaseContestId != 0 {
+		if err := db.First(&g.BaseContest, g.BaseContestId).Error; err != nil {
+			return err
+		}
+	} else {
+		if err := db.Create(&g.BaseContest).Error; err != nil {
+			return err
+		}
 	}
-	game.Admins = admins
-	return db.Create(game).Error
+	// create game
+	g.BaseContestId = g.BaseContest.ID
+	for _, id := range adminIds {
+		user := User{Model: gorm.Model{ID: id}}
+		g.Admins = append(g.Admins, user)
+	}
+	if err := db.Create(g).Error; err != nil {
+		return err
+	}
+	// update base contest's game_id
+	return db.Model(&g.BaseContest).Update("game_id", g.ID).Error
 }
 
 // CRUD: Read
 
-// Here readme is truncated to 100 characters.
-func GetGames(fields ...string) ([]Game, error) {
+func GetGames() ([]Game, error) {
 	var games []Game
-	err := db.Select(fields).Find(&games).Error
+	err := db.Preload("BaseContest", func(db *gorm.DB) *gorm.DB {
+		return db.Select("id", "game_id", "states")
+	}).Find(&games).Error
 	return games, err
 }
 
-func GetGameById(id uint, fields ...string) (Game, error) {
+func GetGameById(id uint) (Game, error) {
 	var game Game
-	err := db.Select(fields).First(&game, id).Error
+	err := db.Preload("BaseContest", func(db *gorm.DB) *gorm.DB {
+		return db.Select("id", "game_id", "states")
+	}).First(&game, id).Error
 	return game, err
 }
 
@@ -69,10 +85,18 @@ func UpdateGameById(id uint, updates map[string]interface{}) error {
 	return db.Model(&Game{}).Where("id = ?", id).Updates(updates).Error
 }
 
+func (g *Game) Update(updates map[string]interface{}) error {
+	return db.Model(g).Updates(updates).Error
+}
+
 // CRUD: Delete
 
 func DeleteGameById(id uint) error {
 	return db.Delete(&Game{}, id).Error
+}
+
+func (g *Game) Delete() error {
+	return db.Delete(g).Error
 }
 
 // associations
@@ -108,42 +132,4 @@ func (g *Game) RemoveAdmin(userId uint) error {
 	return db.Model(g).Association("Admins").Delete(&user)
 }
 
-// contestant
-
-// GetContestants returns all contestants in the game.
-// Sorted by points in descending order.
-func (g *Game) GetContestants() ([]Contestant, error) {
-	return getContestants(map[string]interface{}{"game_id": g.ID, "contest_id": 0}, preloadQuery{})
-}
-
-// ai
-
-func (g *Game) GetAis(query QueryParams, preload bool) (ais []Ai, count int64, err error) {
-	if query.Filter == nil {
-		query.Filter = make(map[string]interface{})
-	}
-	query.Filter["game_id"] = g.ID
-	query.Filter["contest_id"] = 0
-	return GetAis(query, preload)
-}
-
-func (g *Game) GetAiById(id uint, preload bool, fields ...string) (Ai, error) {
-	return getAi(map[string]interface{}{"game_id": g.ID, "contest_id": 0, "Number": id}, preload, fields...)
-}
-
-// match
-
-func (g *Game) GetMatches(query QueryParams) (matches []Match, count int64, err error) {
-	if query.Filter == nil {
-		query.Filter = make(map[string]interface{})
-	}
-	query.Filter["game_id"] = g.ID
-	query.Filter["contest_id"] = 0
-	return GetMatches(query)
-}
-
-// sdk
-
-func (g *Game) GetSdks(fields ...string) ([]Sdk, error) {
-	return GetSdks(map[string]interface{}{"game_id": g.ID, "contest_id": 0}, fields...)
-}
+// TODO:game logic files

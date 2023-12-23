@@ -3,10 +3,10 @@ package model
 import "gorm.io/gorm"
 
 type BaseContest struct {
-	GameId   uint
-	Metadata Metadata      `gorm:"embedded"`
-	States   ContestStates `gorm:"embedded"`
-	Script   string
+	gorm.Model
+	GameId uint
+	States ContestStates `gorm:"embedded"`
+	Script string
 }
 
 type Metadata struct {
