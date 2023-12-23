@@ -12,7 +12,7 @@ import (
 func createGame(c *gin.Context) {
 	inuserID := c.MustGet("userID").(int)
 	userID := uint(inuserID)
-	userr, err := model.GetUserById(userID)
+	userr, err := model.GetUserByID(userID)
 	if err != nil {
 		c.JSON(401, gin.H{})
 		c.Abort()
@@ -34,7 +34,7 @@ func createGame(c *gin.Context) {
 	}
 	tempGame := model.Game{}
 	if input.NewAdminUsername == "" {
-		err = model.CreateGame(&tempGame, []uint{userID})
+		err = tempGame.Create([]uint{userID})
 	} else {
 		newAdmin, err := model.GetUserByUsername(input.NewAdminUsername)
 		if err != nil {
@@ -45,7 +45,7 @@ func createGame(c *gin.Context) {
 			c.Abort()
 			return
 		}
-		err = model.CreateGame(&tempGame, []uint{newAdmin.ID})
+		err = tempGame.Create([]uint{newAdmin.ID})
 		if err != nil {
 			c.JSON(500, gin.H{"error": "failed to create game"})
 			c.Abort()
@@ -64,7 +64,7 @@ func createGame(c *gin.Context) {
 func forkGame(c *gin.Context) {
 	inuserID := c.MustGet("userID").(int)
 	userID := uint(inuserID)
-	userr, err := model.GetUserById(userID)
+	userr, err := model.GetUserByID(userID)
 	if err != nil {
 		c.JSON(401, gin.H{})
 		c.Abort()
@@ -90,7 +90,7 @@ func forkGame(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	tempGame, err := model.GetGameById(uint(gameID))
+	tempGame, err := model.GetGameByID(uint(gameID))
 	tempGame.ID = 0
 	if err != nil {
 		c.JSON(422, gin.H{"error": ErrorFor422{
@@ -101,7 +101,7 @@ func forkGame(c *gin.Context) {
 		return
 	}
 	if input.NewAdminUsername == "" {
-		err = model.CreateGame(&tempGame, []uint{userID})
+		err = tempGame.Create([]uint{userID})
 	} else {
 		newAdmin, err := model.GetUserByUsername(input.NewAdminUsername)
 		if err != nil {
@@ -112,7 +112,7 @@ func forkGame(c *gin.Context) {
 			c.Abort()
 			return
 		}
-		err = model.CreateGame(&tempGame, []uint{newAdmin.ID})
+		err = tempGame.Create([]uint{newAdmin.ID})
 		if err != nil {
 			c.JSON(500, gin.H{"error": "failed to create game"})
 			c.Abort()
@@ -144,7 +144,7 @@ func updateGameLogic(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	err := model.UpdateGameById(gameID, map[string]interface{}{
+	err := model.UpdateGameByID(gameID, map[string]interface{}{
 		"game_logic_build_dockerfile": input.BuildGameLogicDockerfile,
 		"game_logic_run_dockerfile":   input.RunGameLogicDockerfile,
 	})
@@ -169,7 +169,7 @@ func updateMatchDetail(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		c.Abort()
 	}
-	err := model.UpdateGameById(gameID, map[string]interface{}{
+	err := model.UpdateGameByID(gameID, map[string]interface{}{
 		"match_detail_template": input.Template,
 	})
 	if err != nil {

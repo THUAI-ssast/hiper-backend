@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"hiper-backend/model"
 	"mime/multipart"
 	"net/http"
@@ -13,7 +12,7 @@ import (
 func deleteGame(c *gin.Context) {
 	ingameID := c.MustGet("gameID").(int)
 	gameID := uint(ingameID)
-	err := model.DeleteGameById(gameID)
+	err := model.DeleteGameByID(gameID)
 	if err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		c.Abort()
@@ -43,7 +42,7 @@ func addAdmin(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	game, err := model.GetGameById(gameID)
+	game, err := model.GetGameByID(gameID)
 	if err != nil {
 		c.JSON(422, gin.H{"error": ErrorFor422{
 			Code:  MissingField,
@@ -78,7 +77,7 @@ func relinquishAdmin(c *gin.Context) {
 	}
 	inuserID := c.MustGet("userID").(int)
 	userID := uint(inuserID)
-	game, err := model.GetGameById(gameID)
+	game, err := model.GetGameByID(gameID)
 	if err != nil {
 		c.JSON(422, gin.H{"error": ErrorFor422{
 			Code:  MissingField,
@@ -89,7 +88,7 @@ func relinquishAdmin(c *gin.Context) {
 	}
 	if admins, _ := game.GetAdmins(); len(admins) == 1 {
 		if input.Force {
-			err = model.DeleteGameById(gameID)
+			err = model.DeleteGameByID(gameID)
 			if err != nil {
 				c.JSON(422, gin.H{"error": ErrorFor422{
 					Code:  Invalid,
@@ -131,7 +130,7 @@ func updateGameScript(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	err := model.UpdateGameById(gameID, map[string]interface{}{"script": input.Script})
+	err := model.UpdateGameByID(gameID, map[string]interface{}{"script": input.Script})
 	if err != nil {
 		c.JSON(422, gin.H{"error": ErrorFor422{
 			Code:  Invalid,
@@ -157,7 +156,7 @@ func updateGameMetadata(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	err := model.UpdateGameById(gameID, map[string]interface{}{
+	err := model.UpdateGameByID(gameID, map[string]interface{}{
 		"cover_url": input.CoverURL,
 		"readme":    input.Readme,
 		"title":     input.Title,
@@ -240,7 +239,7 @@ func updateGameStates(c *gin.Context) {
 	if input.TestMatchEnabled != nil {
 		updates["test_match_enabled"] = input.TestMatchEnabled
 	}
-	err := model.UpdateGameById(gameID, updates)
+	err := model.UpdateGameByID(gameID, updates)
 	if err != nil {
 		c.JSON(422, gin.H{"error": ErrorFor422{
 			Code:  Invalid,
@@ -270,9 +269,9 @@ func getGames(c *gin.Context) {
 		}
 		gameData := gin.H{
 			"id":           game.ID,
-			"game_id":      game.GameId,
+			"game_id":      game.BaseContest.GameID,
 			"metadata":     game.Metadata,
-			"states":       game.States,
+			"states":       game.BaseContest.States,
 			"my_privilege": pri,
 		}
 		gamesList = append(gamesList, gameData)
@@ -287,7 +286,7 @@ func getTheGame(c *gin.Context) {
 		c.JSON(400, gin.H{})
 		return
 	}
-	game, err := model.GetGameById(uint(id))
+	game, err := model.GetGameByID(uint(id))
 	if err != nil {
 		c.JSON(404, gin.H{"error": "Game not found"})
 		return
@@ -302,9 +301,9 @@ func getTheGame(c *gin.Context) {
 
 	c.JSON(200, gin.H{
 		"id":           game.ID,
-		"game_id":      game.GameId,
+		"game_id":      game.BaseContest.GameID,
 		"metadata":     game.Metadata,
-		"states":       game.States,
+		"states":       game.BaseContest.States,
 		"my_privilege": pri,
 		// TODO: my
 	})
@@ -427,7 +426,7 @@ func getTheAI(c *gin.Context) {
 		c.JSON(400, gin.H{})
 		return
 	}
-	game, err := model.GetGameById(uint(id))
+	_, err = model.GetGameByID(uint(id))
 	if err != nil {
 		c.JSON(404, gin.H{"error": "Game not found"})
 		return
@@ -438,7 +437,7 @@ func getTheAI(c *gin.Context) {
 		c.JSON(400, gin.H{})
 		return
 	}
-	ai, err := game.GetAiById(uint(ai_id), true)
+	ai, err := model.GetAiByID(uint(ai_id), true)
 	if err != nil {
 		c.JSON(404, gin.H{"error": "AI not found"})
 		return
@@ -454,37 +453,37 @@ func getTheAI(c *gin.Context) {
 }
 
 func downloadTheAI(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		c.JSON(400, gin.H{})
-		return
-	}
-	game, err := model.GetGameById(uint(id))
-	if err != nil {
-		c.JSON(404, gin.H{"error": "Game not found"})
-		return
-	}
+	// 	id, err := strconv.Atoi(c.Param("id"))
+	// 	if err != nil {
+	// 		c.JSON(400, gin.H{})
+	// 		return
+	// 	}
+	// 	_, err = model.GetGameByID(uint(id))
+	// 	if err != nil {
+	// 		c.JSON(404, gin.H{"error": "Game not found"})
+	// 		return
+	// 	}
 
-	ai_id, err := strconv.Atoi(c.Param("ai_id"))
-	if err != nil {
-		c.JSON(400, gin.H{})
-		return
-	}
-	ai, err := game.GetAiById(uint(ai_id), true)
-	if err != nil {
-		c.JSON(404, gin.H{"error": "AI not found"})
-		return
-	}
-	file, err := ai.GetFile()
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "file not found"})
-		return
-	}
+	// 	ai_id, err := strconv.Atoi(c.Param("ai_id"))
+	// 	if err != nil {
+	// 		c.JSON(400, gin.H{})
+	// 		return
+	// 	}
+	// 	ai, err := model.GetAiByID(uint(ai_id), true)
+	// 	if err != nil {
+	// 		c.JSON(404, gin.H{"error": "AI not found"})
+	// 		return
+	// 	}
+	// 	//file, err := ai.GetFile()
+	// 	if err != nil {
+	// 		c.JSON(http.StatusNotFound, gin.H{"error": "file not found"})
+	// 		return
+	// 	}
 
-	c.Writer.Header().Set("Content-Type", "application/octet-stream")
-	c.Writer.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", "desired_filename.ext"))
-	c.Writer.WriteHeader(http.StatusOK)
-	c.Writer.Write(file)
+	// 	c.Writer.Header().Set("Content-Type", "application/octet-stream")
+	// 	c.Writer.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", "desired_filename.ext"))
+	// 	c.Writer.WriteHeader(http.StatusOK)
+	// 	c.Writer.Write(file)
 }
 
 func editAiNote(c *gin.Context) {
@@ -523,49 +522,49 @@ func editAiNote(c *gin.Context) {
 }
 
 func getContestants(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		c.JSON(400, gin.H{})
-		return
-	}
+	// 	id, err := strconv.Atoi(c.Param("id"))
+	// 	if err != nil {
+	// 		c.JSON(400, gin.H{})
+	// 		return
+	// 	}
 
-	game, err := model.GetGameById(uint(id))
-	if err != nil {
-		c.JSON(404, gin.H{})
-		return
-	}
+	// 	game, err := model.GetGameByID(uint(id))
+	// 	if err != nil {
+	// 		c.JSON(404, gin.H{})
+	// 		return
+	// 	}
 
-	contestants, err := game.GetContestants()
-	if err != nil {
-		c.JSON(404, gin.H{})
-		return
-	}
+	// 	contestants, err := game.GetContestants()
+	// 	if err != nil {
+	// 		c.JSON(404, gin.H{})
+	// 		return
+	// 	}
 
-	var contestantList []gin.H
-	for _, contestant := range contestants {
-		userid := contestant.UserId
-		user, err := model.GetUserById(uint(userid))
-		if err != nil {
-			c.JSON(400, gin.H{})
-			return
-		}
+	// 	var contestantList []gin.H
+	// 	for _, contestant := range contestants {
+	// 		userid := contestant.UserId
+	// 		user, err := model.GetUserByID(uint(userid))
+	// 		if err != nil {
+	// 			c.JSON(400, gin.H{})
+	// 			return
+	// 		}
 
-		aiid := contestant.AssignedAiId
-		ai, err := game.GetAiById(uint(aiid), true)
-		if err != nil {
-			c.JSON(400, gin.H{})
-			return
-		}
+	// 		aiid := contestant.AssignedAiId
+	// 		ai, err := game.GetAiByID(uint(aiid), true)
+	// 		if err != nil {
+	// 			c.JSON(400, gin.H{})
+	// 			return
+	// 		}
 
-		contestantData := gin.H{
-			"performance": contestant.Performance,
-			"permissions": contestant.Permissions,
-			"points":      contestant.Points,
-			"user":        user,
-			"assigned_ai": ai,
-		}
-		contestantList = append(contestantList, contestantData)
-	}
+	// 		contestantData := gin.H{
+	// 			"performance": contestant.Performance,
+	// 			"permissions": contestant.Permissions,
+	// 			"points":      contestant.Points,
+	// 			"user":        user,
+	// 			"assigned_ai": ai,
+	// 		}
+	// 		contestantList = append(contestantList, contestantData)
+	// 	}
 
-	c.JSON(200, contestantList)
+	// 	c.JSON(200, contestantList)
 }

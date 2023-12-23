@@ -23,7 +23,8 @@ const (
 func RetGameSettings(c *gin.Context) {
 	ingameID := c.MustGet("gameID").(int)
 	gameID := uint(ingameID)
-	game, err := model.GetGameById(gameID)
+	game, err := model.GetGameByID(gameID)
+	baseContest, err := model.GetBaseContestByID(gameID)
 	if err != nil {
 		c.JSON(422, gin.H{"error": ErrorFor422{
 			Code:  Invalid,
@@ -47,7 +48,7 @@ func RetGameSettings(c *gin.Context) {
 			"school": admin.School,
 		}
 	}
-	rawSdk, err := game.GetSdks()
+	rawSdk, err := baseContest.GetSdks()
 	if err != nil {
 		c.JSON(422, gin.H{"error": ErrorFor422{
 			Code:  Invalid,
@@ -78,16 +79,16 @@ func RetGameSettings(c *gin.Context) {
 			"title":     game.Metadata.Title,
 		},
 		"states": map[string]interface{}{
-			"assign_ai_enabled":                  game.States.AssignAiEnabled,
-			"commit_ai_enabled":                  game.States.CommitAiEnabled,
-			"contest_script_environment_enabled": game.States.ContestScriptEnvironmentEnabled,
-			"private_match_enabled":              game.States.PrivateMatchEnabled,
-			"public_match_enabled":               game.States.PublicMatchEnabled,
-			"test_match_enabled":                 game.States.TestMatchEnabled,
+			"assign_ai_enabled":                  game.BaseContest.States.AssignAiEnabled,
+			"commit_ai_enabled":                  game.BaseContest.States.CommitAiEnabled,
+			"contest_script_environment_enabled": game.BaseContest.States.ContestScriptEnvironmentEnabled,
+			"private_match_enabled":              game.BaseContest.States.PrivateMatchEnabled,
+			"public_match_enabled":               game.BaseContest.States.PublicMatchEnabled,
+			"test_match_enabled":                 game.BaseContest.States.TestMatchEnabled,
 		},
 		"admins": admins,
 		"contest_assets": map[string]interface{}{
-			"contest_script": game.Script,
+			"contest_script": game.BaseContest.Script,
 			"sdks":           sdks,
 		},
 		"id":           game.ID,

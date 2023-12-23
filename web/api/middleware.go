@@ -78,7 +78,7 @@ func privilegeCheck() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		gameID := c.Param("id") // 从路径中获取 gameID
 		id, _ := strconv.ParseUint(gameID, 10, 32)
-		game, err := model.GetGameById((uint)(id)) // 使用 gameID 获取 game
+		game, err := model.GetGameByID((uint)(id)) // 使用 gameID 获取 game
 		if err != nil {
 			c.JSON(422, gin.H{"error": ErrorFor422{
 				Code:   Invalid,

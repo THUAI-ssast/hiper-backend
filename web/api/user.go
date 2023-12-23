@@ -426,34 +426,34 @@ func getTheUser(c *gin.Context) {
 		}
 		registered := make([]map[string]interface{}, 0)
 		for _, ct := range contestant {
-			if ct.ContestId == 0 {
+			if ct.BaseContestID == 0 {
 				continue
 			}
-			game, err := model.GetContestById(ct.ContestId)
+			game, err := model.GetContestById(ct.BaseContestID)
 			if err != nil {
 				c.JSON(404, gin.H{})
 				c.Abort()
 				return
 			}
 			myPrivilege := "registered"
-			pri, _ := model.GetContestPrivilege(ct.ContestId, usr.ID)
+			pri, _ := game.GetPrivilege(usr.ID)
 			if pri == "admin" {
 				myPrivilege = "admin"
 			}
 			registered = append(registered, map[string]interface{}{
-				"game_id": ct.ContestId,
+				"game_id": ct.BaseContestID,
 				"metadata": map[string]interface{}{
 					"cover_url": game.Metadata.CoverUrl,
 					"readme":    game.Metadata.Readme,
 					"title":     game.Metadata.Title,
 				},
 				"states": map[string]interface{}{
-					"commit_ai_enabled":                  game.States.CommitAiEnabled,
-					"assign_ai_enabled":                  game.States.AssignAiEnabled,
-					"public_match_enabled":               game.States.PublicMatchEnabled,
-					"contest_script_environment_enabled": game.States.ContestScriptEnvironmentEnabled,
-					"private_match_enabled":              game.States.PrivateMatchEnabled,
-					"test_match_enabled":                 game.States.TestMatchEnabled,
+					"commit_ai_enabled":                  game.BaseContest.States.CommitAiEnabled,
+					"assign_ai_enabled":                  game.BaseContest.States.AssignAiEnabled,
+					"public_match_enabled":               game.BaseContest.States.PublicMatchEnabled,
+					"contest_script_environment_enabled": game.BaseContest.States.ContestScriptEnvironmentEnabled,
+					"private_match_enabled":              game.BaseContest.States.PrivateMatchEnabled,
+					"test_match_enabled":                 game.BaseContest.States.TestMatchEnabled,
 				},
 				"id":           ct.ID,
 				"my_privilege": myPrivilege,
@@ -493,34 +493,34 @@ func getCurrentUser(c *gin.Context) {
 		}
 		registered := make([]map[string]interface{}, 0)
 		for _, ct := range contestant {
-			if ct.ContestId == 0 {
+			if ct.BaseContestID == 0 {
 				continue
 			}
-			game, err := model.GetContestById(ct.ContestId)
+			game, err := model.GetContestById(ct.BaseContestID)
 			if err != nil {
 				c.JSON(404, gin.H{})
 				c.Abort()
 				return
 			}
 			myPrivilege := "registered"
-			pri, _ := model.GetContestPrivilege(ct.ContestId, usr.ID)
+			pri, _ := game.GetPrivilege(usr.ID)
 			if pri == "admin" {
 				myPrivilege = "admin"
 			}
 			registered = append(registered, map[string]interface{}{
-				"game_id": ct.ContestId,
+				"game_id": ct.BaseContestID,
 				"metadata": map[string]interface{}{
 					"cover_url": game.Metadata.CoverUrl,
 					"readme":    game.Metadata.Readme,
 					"title":     game.Metadata.Title,
 				},
 				"states": map[string]interface{}{
-					"commit_ai_enabled":                  game.States.CommitAiEnabled,
-					"assign_ai_enabled":                  game.States.AssignAiEnabled,
-					"public_match_enabled":               game.States.PublicMatchEnabled,
-					"contest_script_environment_enabled": game.States.ContestScriptEnvironmentEnabled,
-					"private_match_enabled":              game.States.PrivateMatchEnabled,
-					"test_match_enabled":                 game.States.TestMatchEnabled,
+					"commit_ai_enabled":                  game.BaseContest.States.CommitAiEnabled,
+					"assign_ai_enabled":                  game.BaseContest.States.AssignAiEnabled,
+					"public_match_enabled":               game.BaseContest.States.PublicMatchEnabled,
+					"contest_script_environment_enabled": game.BaseContest.States.ContestScriptEnvironmentEnabled,
+					"private_match_enabled":              game.BaseContest.States.PrivateMatchEnabled,
+					"test_match_enabled":                 game.BaseContest.States.TestMatchEnabled,
 				},
 				"id":           ct.ID,
 				"my_privilege": myPrivilege,
