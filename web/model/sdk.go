@@ -8,9 +8,9 @@ import (
 
 type Sdk struct {
 	gorm.Model
-	GameId uint `gorm:"index"`
-	// ContestId is 0 if the SDK is in a game instead of any contest.
-	ContestId uint `gorm:"index"`
+	GameID uint `gorm:"index"`
+	// ContestID is 0 if the SDK is in a game instead of any contest.
+	ContestID uint `gorm:"index"`
 	// Number is a unique identifier for each SDK within a game or contest.
 	Number uint `gorm:"index"`
 
@@ -22,17 +22,17 @@ type Sdk struct {
 }
 
 func (s *Sdk) BeforeCreate(tx *gorm.DB) (err error) {
-	// Fill GameId from ContestId
-	if s.ContestId != 0 && s.GameId == 0 {
-		var gameId uint
-		if err = tx.Model(&Contest{}).Select("game_id").First(&Contest{}, s.ContestId).Error; err != nil {
+	// Fill GameID from ContestID
+	if s.ContestID != 0 && s.GameID == 0 {
+		var gameID uint
+		if err = tx.Model(&Contest{}).Select("game_id").First(&Contest{}, s.ContestID).Error; err != nil {
 			return err
 		}
-		s.GameId = gameId
+		s.GameID = gameID
 	}
 	// Fill Number
 	var maxNumber uint
-	if err = tx.Model(&Sdk{}).Where("game_id = ? AND contest_id = ?", s.GameId, s.ContestId).Pluck("MAX(number)", &maxNumber).Error; err != nil {
+	if err = tx.Model(&Sdk{}).Where("game_id = ? AND contest_id = ?", s.GameID, s.ContestID).Pluck("MAX(number)", &maxNumber).Error; err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
 		}

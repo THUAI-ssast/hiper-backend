@@ -10,33 +10,33 @@ import (
 
 type Ai struct {
 	gorm.Model
-	GameId uint `gorm:"index"`
-	// ContestId is 0 if the AI is in a game instead of any contest.
-	ContestId uint `gorm:"index"`
+	GameID uint `gorm:"index"`
+	// ContestID is 0 if the AI is in a game instead of any contest.
+	ContestID uint `gorm:"index"`
 	// Number is a unique identifier for each AI within a game or contest.
 	Number uint `gorm:"index"`
 
-	UserId uint `gorm:"index"`
-	User   User `gorm:"foreignKey:UserId"`
-	SdkId  uint
-	Sdk    Sdk `gorm:"foreignKey:SdkId"`
+	UserID uint `gorm:"index"`
+	User   User `gorm:"foreignKey:UserID"`
+	SdkID  uint
+	Sdk    Sdk `gorm:"foreignKey:SdkID"`
 
 	Note   string
 	Status TaskStatus `gorm:"embedded;embeddedPrefix:task_"`
 }
 
 func (a *Ai) BeforeCreate(tx *gorm.DB) (err error) {
-	// Fill GameId from ContestId
-	if a.ContestId != 0 && a.GameId == 0 {
-		var gameId uint
-		if err = tx.Model(&Contest{}).Select("game_id").First(&Contest{}, a.ContestId).Error; err != nil {
+	// Fill GameID from ContestID
+	if a.ContestID != 0 && a.GameID == 0 {
+		var gameID uint
+		if err = tx.Model(&Contest{}).Select("game_id").First(&Contest{}, a.ContestID).Error; err != nil {
 			return err
 		}
-		a.GameId = gameId
+		a.GameID = gameID
 	}
 	// Fill Number
 	var maxNumber uint
-	if err = tx.Model(&Ai{}).Where("game_id = ? AND contest_id = ?", a.GameId, a.ContestId).Pluck("MAX(number)", &maxNumber).Error; err != nil {
+	if err = tx.Model(&Ai{}).Where("game_id = ? AND contest_id = ?", a.GameID, a.ContestID).Pluck("MAX(number)", &maxNumber).Error; err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
 		}
@@ -48,7 +48,7 @@ func (a *Ai) BeforeCreate(tx *gorm.DB) (err error) {
 
 // CRUD: Create
 
-func CreateAi(ai *Ai) error {
+func createAi(ai *Ai) error {
 	return db.Create(ai).Error
 }
 
@@ -123,10 +123,10 @@ func (a *Ai) GetFile() ([]byte, error) {
 func (a *Ai) getRelativePathWithoutExt() string {
 	var relativePathWithoutExt string
 	// Determine whether the AI is in a contest or a game
-	if a.ContestId != 0 {
-		relativePathWithoutExt = filepath.Join("contest", strconv.Itoa(int(a.ContestId)))
+	if a.ContestID != 0 {
+		relativePathWithoutExt = filepath.Join("contest", strconv.Itoa(int(a.ContestID)))
 	} else {
-		relativePathWithoutExt = filepath.Join("game", strconv.Itoa(int(a.GameId)))
+		relativePathWithoutExt = filepath.Join("game", strconv.Itoa(int(a.GameID)))
 	}
 	relativePathWithoutExt = filepath.Join(relativePathWithoutExt, "ais", strconv.Itoa(int(a.Number)), "src")
 	return relativePathWithoutExt

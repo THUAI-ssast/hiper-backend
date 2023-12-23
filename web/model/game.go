@@ -7,8 +7,8 @@ import (
 type Game struct {
 	gorm.Model
 
-	BaseContestId uint
-	BaseContest   BaseContest `gorm:"foreignKey:BaseContestId"`
+	BaseContestID uint
+	BaseContest   BaseContest `gorm:"foreignKey:BaseContestID"`
 
 	Metadata Metadata `gorm:"embedded"`
 	Admins   []User   `gorm:"many2many:game_admins;"`
@@ -37,10 +37,10 @@ type MatchDetail struct {
 
 // CRUD: Create
 
-func (g *Game) Create(adminIds []uint) error {
+func (g *Game) Create(adminIDs []uint) error {
 	// link a base contest or create a new one
-	if g.BaseContestId != 0 {
-		if err := db.First(&g.BaseContest, g.BaseContestId).Error; err != nil {
+	if g.BaseContestID != 0 {
+		if err := db.First(&g.BaseContest, g.BaseContestID).Error; err != nil {
 			return err
 		}
 	} else {
@@ -49,8 +49,8 @@ func (g *Game) Create(adminIds []uint) error {
 		}
 	}
 	// create game
-	g.BaseContestId = g.BaseContest.ID
-	for _, id := range adminIds {
+	g.BaseContestID = g.BaseContest.ID
+	for _, id := range adminIDs {
 		user := User{Model: gorm.Model{ID: id}}
 		g.Admins = append(g.Admins, user)
 	}
@@ -71,7 +71,7 @@ func GetGames() ([]Game, error) {
 	return games, err
 }
 
-func GetGameById(id uint) (Game, error) {
+func GetGameByID(id uint) (Game, error) {
 	var game Game
 	err := db.Preload("BaseContest", func(db *gorm.DB) *gorm.DB {
 		return db.Select("id", "game_id", "states")
@@ -81,7 +81,7 @@ func GetGameById(id uint) (Game, error) {
 
 // CRUD: Update
 
-func UpdateGameById(id uint, updates map[string]interface{}) error {
+func UpdateGameByID(id uint, updates map[string]interface{}) error {
 	return db.Model(&Game{}).Where("id = ?", id).Updates(updates).Error
 }
 
@@ -91,7 +91,7 @@ func (g *Game) Update(updates map[string]interface{}) error {
 
 // CRUD: Delete
 
-func DeleteGameById(id uint) error {
+func DeleteGameByID(id uint) error {
 	return db.Delete(&Game{}, id).Error
 }
 
@@ -102,9 +102,9 @@ func (g *Game) Delete() error {
 // associations
 
 // Note: Game doesn't need registration
-func (g *Game) GetPrivilege(userId uint) (GamePrivilege, error) {
+func (g *Game) GetPrivilege(userID uint) (GamePrivilege, error) {
 	var count int64
-	err := db.Table("game_admins").Where("game_id = ? AND user_id = ?", g.ID, userId).Count(&count).Error
+	err := db.Table("game_admins").Where("game_id = ? AND user_id = ?", g.ID, userID).Count(&count).Error
 	if err != nil {
 		return "", err
 	}
@@ -116,8 +116,8 @@ func (g *Game) GetPrivilege(userId uint) (GamePrivilege, error) {
 
 // admin
 
-func (g *Game) AddAdmin(userId uint) error {
-	user := User{Model: gorm.Model{ID: userId}}
+func (g *Game) AddAdmin(userID uint) error {
+	user := User{Model: gorm.Model{ID: userID}}
 	return db.Model(g).Association("Admins").Append(&user)
 }
 
@@ -127,8 +127,8 @@ func (g *Game) GetAdmins() ([]User, error) {
 	return admins, err
 }
 
-func (g *Game) RemoveAdmin(userId uint) error {
-	user := User{Model: gorm.Model{ID: userId}}
+func (g *Game) RemoveAdmin(userID uint) error {
+	user := User{Model: gorm.Model{ID: userID}}
 	return db.Model(g).Association("Admins").Delete(&user)
 }
 

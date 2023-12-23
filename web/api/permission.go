@@ -18,11 +18,11 @@ func grantCreationPermission(c *gin.Context) {
 	if userID != 1 || author_id == 1 {
 		c.JSON(401, gin.H{})
 	}
-	_, err = model.GetUserById((uint)(author_id))
+	_, err = model.GetUserByID((uint)(author_id))
 	if err != nil {
 		c.JSON(404, gin.H{})
 	}
-	err = model.UpdateUserById((uint)(author_id), map[string]interface{}{"can_create_game_or_contest": true})
+	err = model.UpdateUserByID((uint)(author_id), map[string]interface{}{"can_create_game_or_contest": true})
 	if err != nil {
 		c.JSON(500, gin.H{})
 	}
@@ -39,11 +39,11 @@ func revokeCreationPermission(c *gin.Context) {
 	if userID != 1 || author_id == 1 {
 		c.JSON(401, gin.H{})
 	}
-	_, err = model.GetUserById((uint)(author_id))
+	_, err = model.GetUserByID((uint)(author_id))
 	if err != nil {
 		c.JSON(404, gin.H{})
 	}
-	err = model.UpdateUserById((uint)(author_id), map[string]interface{}{"can_create_game_or_contest": false})
+	err = model.UpdateUserByID((uint)(author_id), map[string]interface{}{"can_create_game_or_contest": false})
 	if err != nil {
 		c.JSON(500, gin.H{})
 	}
