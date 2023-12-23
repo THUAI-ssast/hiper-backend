@@ -15,6 +15,7 @@ func ApiListenHttp() {
 	addUserRoutes(r)
 	addPermissionRoutes(r)
 	addGameRoutes(r)
+	addBaseContestRoutes(r)
 	// TODO: add more routes
 
 	r.Run(":8080")
@@ -75,6 +76,23 @@ func addGameRoutes(r *gin.Engine) {
 		{
 			auth.POST("/games", createGame)
 			auth.POST("/games/:id/fork", forkGame)
+			//此后的路由都需要验证是否是管理员.在其内部，我们可以使用gameID := c.MustGet("gameID").(int)来获取当前游戏的ID
+			auth = auth.Group("/", privilegeCheck())
+			{
+				auth.GET("/games/:id/settings", getGameSettings)
+				auth.PATCH("/games/:id/game_logic", updateGameLogic)
+				auth.PATCH("/games/:id/match_detail", updateMatchDetail)
+			}
+		}
+	}
+}
+
+func addBaseContestRoutes(r *gin.Engine) {
+	v1 := r.Group("/api/v1")
+	{
+		//此后的路由都需要验证是否登录.在其内部，我们可以使用userID := c.MustGet("userID").(int)来获取当前登录用户的ID
+		auth := v1.Group("/", loginVerify())
+		{
 			auth.GET("/games", getGames)
 			auth.GET("/games/:id", getTheGame)
 			auth.GET("/games/:id/ais", getAis)
@@ -96,9 +114,6 @@ func addGameRoutes(r *gin.Engine) {
 				auth.DELETE("/games/:id/sdks/:sdk_id", deleteSdk)
 				auth.PATCH("/games/:id/sdks/:sdk_id", updateSdk)
 				auth.PATCH("/games/:id/states", updateGameStates)
-				auth.GET("/games/:id/settings", getGameSettings)
-				auth.PATCH("/games/:id/game_logic", updateGameLogic)
-				auth.PATCH("/games/:id/match_detail", updateMatchDetail)
 			}
 		}
 	}
