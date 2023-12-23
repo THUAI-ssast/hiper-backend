@@ -28,7 +28,7 @@ type Registration struct {
 	Password            string
 }
 
-// TODO: add CRUD functions for contest
+// CRUD: Create
 
 func (c *Contest) Create(gameID uint, adminIDs []uint) error {
 	// link a base contest or create a new one
@@ -52,6 +52,44 @@ func (c *Contest) Create(gameID uint, adminIDs []uint) error {
 		return err
 	}
 	return nil
+}
+
+// CRUD: Read
+
+func GetContests(fields ...string) (contests []Contest, err error) {
+	tx := db.Preload("BaseContest", func(db *gorm.DB) *gorm.DB {
+		return db.Select("id", "game_id", "states")
+	})
+	if len(fields) > 0 {
+		tx = tx.Select(fields)
+	}
+	err = tx.Find(&contests).Error
+	return
+}
+
+func GetContestByID(id uint, fields ...string) (contest Contest, err error) {
+	err = db.Preload("BaseContest").First(&contest, id).Error
+	return
+}
+
+// CRUD: Update
+
+func UpdateContestByID(id uint, updates map[string]interface{}) error {
+	return db.Model(&Contest{}).Where("id = ?", id).Updates(updates).Error
+}
+
+func (c *Contest) Update(updates map[string]interface{}) error {
+	return db.Model(c).Updates(updates).Error
+}
+
+// CRUD: Delete
+
+func DeleteContestByID(id uint) error {
+	return db.Delete(&Contest{}, id).Error
+}
+
+func (c *Contest) Delete() error {
+	return db.Delete(c).Error
 }
 
 // association

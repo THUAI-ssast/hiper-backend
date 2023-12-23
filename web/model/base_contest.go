@@ -59,6 +59,33 @@ type DockerTask struct {
 	Status     TaskStatus `gorm:"embedded"`
 }
 
+// CRUD: Read
+
+func GetBaseContestByID(id uint) (bc BaseContest, err error) {
+	err = db.First(&bc, id).Error
+	return
+}
+
+// CRUD: Update
+
+func UpdateBaseContestByID(id uint, updates map[string]interface{}) error {
+	return db.Model(&BaseContest{}).Where("id = ?", id).Updates(updates).Error
+}
+
+func (bc *BaseContest) Update(updates map[string]interface{}) error {
+	return db.Model(bc).Updates(updates).Error
+}
+
+// CRUD: Delete
+
+func DeleteBaseContestByID(id uint) error {
+	return db.Delete(&BaseContest{}, id).Error
+}
+
+func (bc *BaseContest) Delete() error {
+	return db.Delete(bc).Error
+}
+
 // Association CRUD
 
 // contestant

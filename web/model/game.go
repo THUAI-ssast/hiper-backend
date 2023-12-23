@@ -61,24 +61,20 @@ func (g *Game) Create(adminIDs []uint) error {
 
 // CRUD: Read
 
-func GetGames(fields ...string) ([]Game, error) {
-	var games []Game
-	db := db.Preload("BaseContest", func(db *gorm.DB) *gorm.DB {
+func GetGames(fields ...string) (games []Game, err error) {
+	tx := db.Preload("BaseContest", func(db *gorm.DB) *gorm.DB {
 		return db.Select("id", "game_id", "states")
 	})
 	if len(fields) > 0 {
-		db = db.Select(fields)
+		tx = tx.Select(fields)
 	}
-	err := db.Find(&games).Error
-	return games, err
+	err = tx.Find(&games).Error
+	return
 }
 
-func GetGameByID(id uint, fields ...string) (Game, error) {
-	var game Game
-	err := db.Preload("BaseContest", func(db *gorm.DB) *gorm.DB {
-		return db.Select("id", "game_id", "states")
-	}).First(&game, id).Error
-	return game, err
+func GetGameByID(id uint, fields ...string) (game Game, err error) {
+	err = db.Preload("BaseContest").First(&game, id).Error
+	return
 }
 
 // CRUD: Update
