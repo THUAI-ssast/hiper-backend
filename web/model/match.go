@@ -8,87 +8,80 @@ import (
 
 type Match struct {
 	gorm.Model
-	GameID uint `gorm:"index"`
-	// ContestID is 0 if the match is in a game instead of any contest.
-	ContestID uint `gorm:"index"`
-	// Number is a unique identifier for each match within a game or contest.
-	Number uint `gorm:"index"`
+	BaseContestID uint `gorm:"index"`
 
 	Players []Ai `gorm:"many2many:match_ais;"`
 	State   TaskState
 	Tag     string
 
 	Scores []int `gorm:"serializer:json"`
+
+	// snapshot fields
+	Users []User `gorm:"-"` // not stored in database
 }
 
 // CRUD: Create
 
-func (m *Match) BeforeCreate(tx *gorm.DB) (err error) {
-	// Fill GameID from ContestID
-	if m.ContestID != 0 && m.GameID == 0 {
-		var gameID uint
-		if err = tx.Model(&Contest{}).Select("game_id").First(&Contest{}, m.ContestID).Error; err != nil {
-			return err
-		}
-		m.GameID = gameID
+func (m *Match) Create(playerIDs []uint) error {
+	if len(playerIDs) == 0 {
+		return errors.New("no players")
 	}
-	// Fill Number
-	var maxNumber uint
-	if err = tx.Model(&Match{}).Where("game_id = ? AND contest_id = ?", m.GameID, m.ContestID).Pluck("MAX(number)", &maxNumber).Error; err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return err
-		}
-		maxNumber = 0 // If no rows are found, set maxNumber to 0
-	}
-	m.Number = maxNumber + 1
-	return nil
-}
 
-// TODO
-func CreateMatch(match *Match, playerIDs []uint) error {
-	players := make([]Ai, len(playerIDs))
-	for i, id := range playerIDs {
-		players[i] = Ai{Model: gorm.Model{ID: id}}
+	for _, id := range playerIDs {
+		player := Ai{Model: gorm.Model{ID: id}}
+		m.Players = append(m.Players, player)
 	}
-	match.Players = players
-	return db.Create(match).Error
+
+	return db.Create(m).Error
 }
 
 // CRUD: Read
 
-func GetMatches(query QueryParams) ([]Match, int64, error) {
+// Sorted by id in descending order.
+// If preload is true, the following fields will be preloaded:
+// Ai.ID, Ai.Sdk.ID, Ai.Sdk.Name
+// User.AvatarURL, User.Nickname, User.Username
+func GetMatches(query QueryParams, preload bool) (matches []Match, count int64, err error) {
+	tx := db.Order("id DESC")
+	if preload {
+		tx = addPreloadsForMatch(tx)
+	}
 	if query.Limit == 0 {
 		query.Limit = 20
 	}
-	var matches []Match
-	var count int64
-	db := db.Where(query.Filter)
-	err := db.Count(&count).Error
-	if err != nil {
-		return nil, 0, err
-	}
-	err = db.Offset(query.Offset).Limit(query.Limit).Find(&matches).Error
-	return matches, count, err
+	count, err = paginate(tx, query, &matches)
+	return matches, count, nil
 }
 
-func getMatch(condition map[string]interface{}, fields ...string) (Match, error) {
-	var match Match
-	err := db.Select(fields).Where(condition).First(&match).Error
-	return match, err
+func GetMatchByID(id uint, preload bool) (match Match, err error) {
+	tx := db.Where("id = ?", id)
+	if preload {
+		tx = addPreloadsForMatch(tx)
+	}
+	err = tx.First(&match).Error
+	return
+}
+
+func addPreloadsForMatch(tx *gorm.DB) *gorm.DB {
+	return tx.Preload("Players", func(db *gorm.DB) *gorm.DB {
+		return db.Select("id").Preload("Sdk", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id", "name")
+		}).Preload("User", func(db *gorm.DB) *gorm.DB {
+			return db.Select("avatar_url", "nickname", "username")
+		})
+	})
+}
+
+// CRUD: Update
+
+func UpdateMatchByID(id uint, updates map[string]interface{}) error {
+	return db.Model(&Match{}).Where("id = ?", id).Updates(updates).Error
+}
+
+func (m *Match) Update(updates map[string]interface{}) error {
+	return db.Model(m).Updates(updates).Error
 }
 
 // associations
 
-// GetLogs returns logs of each player in the match
-func (m *Match) GetLogs() ([]string, error) {
-	// TODO: implement
-	// read logs from file
-	return nil, nil
-}
-
-// GetReplay returns replay of the match
-func (m *Match) GetReplay() (string, error) {
-	// TODO: implement
-	// read replay from file
-	return "", nil
-}
+// match files

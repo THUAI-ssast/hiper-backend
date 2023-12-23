@@ -87,3 +87,10 @@ func (bc *BaseContest) GetAis(query QueryParams, preload bool) ([]Ai, int64, err
 	query.Filter["base_contest_id"] = bc.ID
 	return GetAis(query, preload)
 }
+
+// match
+
+func (bc *BaseContest) GetMatches(query QueryParams, preload bool) ([]Match, int64, error) {
+	query.Filter["base_contest_id"] = bc.ID
+	return GetMatches(query, preload)
+}
