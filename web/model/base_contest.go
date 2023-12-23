@@ -94,3 +94,14 @@ func (bc *BaseContest) GetMatches(query QueryParams, preload bool) ([]Match, int
 	query.Filter["base_contest_id"] = bc.ID
 	return GetMatches(query, preload)
 }
+
+// sdk
+
+func (bc *BaseContest) GetSdks(fields ...string) (sdks []Sdk, err error) {
+	var tx *gorm.DB
+	if len(fields) > 0 {
+		tx = db.Select(fields)
+	}
+	err = tx.Where("base_contest_id = ?", bc.ID).Find(&sdks).Error
+	return
+}
