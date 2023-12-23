@@ -6,9 +6,12 @@ import (
 
 type Game struct {
 	gorm.Model
-	BaseContest
 
-	Admins []User `gorm:"many2many:game_admins;"`
+	BaseContestID uint
+	BaseContest   BaseContest `gorm:"foreignKey:BaseContestID"`
+
+	Metadata Metadata `gorm:"embedded"`
+	Admins   []User   `gorm:"many2many:game_admins;"`
 
 	// game assets
 	GameLogic   GameLogic   `gorm:"embedded;embeddedPrefix:game_logic_"`
@@ -34,53 +37,78 @@ type MatchDetail struct {
 
 // CRUD: Create
 
-func (g *Game) AfterCreate(tx *gorm.DB) (err error) {
-	g.GameId = g.ID
-	return tx.Save(g).Error
-}
-
-func CreateGame(game *Game, adminIDs []uint) error {
-	admins := make([]User, len(adminIDs))
-	for i, id := range adminIDs {
-		admins[i] = User{Model: gorm.Model{ID: id}, Password: []byte{1}}
+func (g *Game) Create(adminIDs []uint) error {
+	// link a base contest or create a new one
+	if g.BaseContestID != 0 {
+		if err := db.First(&g.BaseContest, g.BaseContestID).Error; err != nil {
+			return err
+		}
+	} else {
+		if err := db.Create(&g.BaseContest).Error; err != nil {
+			return err
+		}
 	}
-	game.Admins = admins
-	return db.Create(game).Error
+	// create game
+	g.BaseContestID = g.BaseContest.ID
+	for _, id := range adminIDs {
+		user := User{Model: gorm.Model{ID: id}}
+		g.Admins = append(g.Admins, user)
+	}
+	if err := db.Create(g).Error; err != nil {
+		return err
+	}
+	// update base contest's game_id
+	return db.Model(&g.BaseContest).Update("game_id", g.ID).Error
 }
 
 // CRUD: Read
 
-// Here readme is truncated to 100 characters.
 func GetGames(fields ...string) ([]Game, error) {
 	var games []Game
-	err := db.Select(fields).Find(&games).Error
+	db := db.Preload("BaseContest", func(db *gorm.DB) *gorm.DB {
+		return db.Select("id", "game_id", "states")
+	})
+	if len(fields) > 0 {
+		db = db.Select(fields)
+	}
+	err := db.Find(&games).Error
 	return games, err
 }
 
-func GetGameById(id uint, fields ...string) (Game, error) {
+func GetGameByID(id uint, fields ...string) (Game, error) {
 	var game Game
-	err := db.Select(fields).First(&game, id).Error
+	err := db.Preload("BaseContest", func(db *gorm.DB) *gorm.DB {
+		return db.Select("id", "game_id", "states")
+	}).First(&game, id).Error
 	return game, err
 }
 
 // CRUD: Update
 
-func UpdateGameById(id uint, updates map[string]interface{}) error {
+func UpdateGameByID(id uint, updates map[string]interface{}) error {
 	return db.Model(&Game{}).Where("id = ?", id).Updates(updates).Error
+}
+
+func (g *Game) Update(updates map[string]interface{}) error {
+	return db.Model(g).Updates(updates).Error
 }
 
 // CRUD: Delete
 
-func DeleteGameById(id uint) error {
+func DeleteGameByID(id uint) error {
 	return db.Delete(&Game{}, id).Error
+}
+
+func (g *Game) Delete() error {
+	return db.Delete(g).Error
 }
 
 // associations
 
 // Note: Game doesn't need registration
-func (g *Game) GetPrivilege(userId uint) (GamePrivilege, error) {
+func (g *Game) GetPrivilege(userID uint) (GamePrivilege, error) {
 	var count int64
-	err := db.Table("game_admins").Where("game_id = ? AND user_id = ?", g.ID, userId).Count(&count).Error
+	err := db.Table("game_admins").Where("game_id = ? AND user_id = ?", g.ID, userID).Count(&count).Error
 	if err != nil {
 		return "", err
 	}
@@ -91,7 +119,6 @@ func (g *Game) GetPrivilege(userId uint) (GamePrivilege, error) {
 }
 
 // admin
-
 func (g *Game) AddAdmin(userId uint) error {
 	user := User{Model: gorm.Model{ID: userId}, Password: []byte{1}}
 	return db.Model(g).Association("Admins").Append(&user)

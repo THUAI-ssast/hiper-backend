@@ -99,14 +99,9 @@ func registerUser(c *gin.Context) {
 		return
 	}
 
-	u := model.User{
-		Email:    email,
-		Password: user.HashPassword(password),
-		Username: username,
-	}
-	if err := model.CreateUser(&u); err != nil {
-		c.JSON(500, gin.H{"error": "user creation failed"})
-		c.Abort()
+	if _, err := user.RegisterUser(username, email, password); err != nil {
+		c.JSON(500, gin.H{"error": "Failed to register user"})
+    c.Abort()
 		return
 	}
 	c.JSON(200, gin.H{
@@ -342,7 +337,7 @@ func searchUsers(c *gin.Context) {
 		})
 		c.Abort()
 	} else if userID != 0 {
-		usr, err := model.GetUserById((uint)(userID))
+		usr, err := model.GetUserByID((uint)(userID))
 		if err != nil {
 			c.JSON(404, gin.H{})
 			c.Abort()
@@ -486,7 +481,7 @@ func getTheUser(c *gin.Context) {
 func getCurrentUser(c *gin.Context) {
 	userIDs, _ := c.Get("userID")
 	userID, _ := userIDs.(int)
-	usr, err := model.GetUserById((uint)(userID))
+	usr, err := model.GetUserByID((uint)(userID))
 	if err != nil {
 		c.JSON(404, gin.H{})
 		c.Abort()
@@ -553,7 +548,7 @@ func getCurrentUser(c *gin.Context) {
 func updateCurrentUser(c *gin.Context) {
 	userIDs, _ := c.Get("userID")
 	userID, _ := userIDs.(int)
-	_, err := model.GetUserById((uint)(userID))
+	_, err := model.GetUserByID((uint)(userID))
 	if err != nil {
 		c.JSON(404, gin.H{})
 		c.Abort()
@@ -615,7 +610,7 @@ func updateCurrentUser(c *gin.Context) {
 		}
 
 		if len(updates) > 0 {
-			err = model.UpdateUserById((uint)(userID), updates)
+			err = model.UpdateUserByID((uint)(userID), updates)
 			if err != nil {
 				c.JSON(422, gin.H{"error": ErrorFor422{
 					Code:  Invalid,
@@ -625,7 +620,7 @@ func updateCurrentUser(c *gin.Context) {
 				return
 			}
 		}
-		usr, _ := model.GetUserById((uint)(userID))
+		usr, _ := model.GetUserByID((uint)(userID))
 		c.JSON(200, gin.H{
 			"avatar_url": usr.AvatarURL,
 			"username":   usr.Username,

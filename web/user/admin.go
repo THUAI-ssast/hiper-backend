@@ -1,10 +1,9 @@
 package user
 
 import (
-	"hiper-backend/model"
-
 	"github.com/spf13/viper"
-	"golang.org/x/crypto/bcrypt"
+
+	"hiper-backend/model"
 )
 
 // UpsertSuperAdmin upserts the super admin user.
@@ -16,10 +15,7 @@ func UpsertSuperAdmin() {
 	if password == "" {
 		panic("superadmin.password is required")
 	}
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		panic(err)
-	}
+	hashedPassword := HashPassword(password)
 
 	model.UpsertUser(model.User{
 		Username: "admin",
