@@ -3,6 +3,8 @@ package model
 import (
 	"context"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 var ctx = context.Background()
@@ -17,6 +19,15 @@ type QueryParams struct {
 type preloadQuery struct {
 	Table   string
 	Columns []string
+}
+
+func addPreloads(tx *gorm.DB, preloads []preloadQuery) *gorm.DB {
+	for _, preload := range preloads {
+		tx = tx.Preload(preload.Table, func(db *gorm.DB) *gorm.DB {
+			return db.Select(preload.Columns)
+		})
+	}
+	return tx
 }
 
 func SaveVerificationCode(code string, email string, expireInMinutes int) error {

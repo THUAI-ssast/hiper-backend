@@ -4,7 +4,7 @@ import "gorm.io/gorm"
 
 type BaseContest struct {
 	gorm.Model
-	GameId uint
+	GameID uint
 	States ContestStates `gorm:"embedded"`
 	Script string
 }
@@ -57,4 +57,34 @@ func (ts *TaskStatus) BeforeSave(tx *gorm.DB) (err error) {
 type DockerTask struct {
 	Dockerfile string
 	Status     TaskStatus `gorm:"embedded"`
+}
+
+// Association CRUD
+
+// contestant
+
+func (bc *BaseContest) CreateContestant(userID uint) error {
+	c := Contestant{
+		BaseContestID: bc.ID,
+		UserID:        userID,
+	}
+	return c.Create()
+}
+
+// Sorted by points in descending order.
+// Currently supported preloads: "User", "AssignedAi"
+func (bc *BaseContest) GetContestants(preloads []preloadQuery) ([]Contestant, error) {
+	return GetContestants(map[string]interface{}{"base_contest_id": bc.ID}, preloads)
+}
+
+func (bc *BaseContest) GetContestantByUserID(userID uint, preloads []preloadQuery) (Contestant, error) {
+	return GetContestant(map[string]interface{}{"base_contest_id": bc.ID, "user_id": userID}, preloads)
+}
+
+func (bc *BaseContest) UpdateContestantByUserID(userID uint, updates map[string]interface{}) error {
+	return db.Model(&Contestant{}).Where("base_contest_id = ? AND user_id = ?", bc.ID, userID).Updates(updates).Error
+}
+
+func (bc *BaseContest) DeleteContestantByUserID(userID uint) error {
+	return db.Where("base_contest_id = ? AND user_id = ?", bc.ID, userID).Delete(&Contestant{}).Error
 }
