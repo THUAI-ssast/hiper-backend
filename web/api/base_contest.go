@@ -1,6 +1,7 @@
 package api
 
 import (
+	"hiper-backend/game"
 	"hiper-backend/model"
 	"mime/multipart"
 	"net/http"
@@ -174,8 +175,8 @@ func updateGameMetadata(c *gin.Context) {
 }
 
 func addSdk(c *gin.Context) {
-	// ingameID := c.MustGet("gameID").(int)
-	//gameID:= uint(ingameID )
+	ingameID := c.MustGet("gameID").(int)
+	gameID := uint(ingameID)
 	var input struct {
 		Name              string                `json:"name"`
 		Description       string                `json:"description"`
@@ -188,19 +189,108 @@ func addSdk(c *gin.Context) {
 		c.Abort()
 		return
 	}
+	sdk := model.Sdk{
+		Name:          input.Name,
+		Readme:        input.Description,
+		BaseContestID: gameID,
+	}
+	sdk.BuildAi.Dockerfile = input.BuildAiDockerfile
+	sdk.RunAi.Dockerfile = input.RunAiDockerfile
+	err := sdk.Create()
+	if err != nil {
+		c.JSON(422, gin.H{"error": ErrorFor422{
+			Code:  Invalid,
+			Field: "cannot create sdk",
+		}})
+		c.Abort()
+		return
+	}
+	//saveSdkFile(sdk.ID,input.Sdk)
 	//TODO:往sdk中添加，存储文件至/var/hiper/sdks/sdks:id.xxx
+	c.JSON(200, gin.H{})
+	c.Abort()
 }
 
 func getSdk(c *gin.Context) {
-	//TODO:检测sdk是对应game的，然后获取
+	sdk, err := game.GetSdksFromKnownGame(c)
+	if err != nil {
+		return
+	}
+	c.JSON(200, gin.H{
+		"id":     sdk.ID,
+		"name":   sdk.Name,
+		"readme": sdk.Readme,
+		"build_ai": map[string]interface{}{
+			"dockerfile": sdk.BuildAi.Dockerfile,
+			"status": map[string]interface{}{
+				"state": sdk.BuildAi.Status.State,
+				"msg":   sdk.BuildAi.Status.Msg,
+			},
+		},
+		"run_ai": map[string]interface{}{
+			"dockerfile": sdk.RunAi.Dockerfile,
+			"status": map[string]interface{}{
+				"state": sdk.RunAi.Status.State,
+				"msg":   sdk.RunAi.Status.Msg,
+			},
+		},
+	})
+	c.Abort()
 }
 
 func deleteSdk(c *gin.Context) {
-	//TODO:检测sdk是对应game的，然后删除
+	sdk, err := game.GetSdksFromKnownGame(c)
+	if err != nil {
+		return
+	}
+	err = model.DeleteSdkByID(sdk.ID)
+	if err != nil {
+		c.JSON(422, gin.H{"error": ErrorFor422{
+			Code:  Invalid,
+			Field: "cannot delete sdk",
+		}})
+		c.Abort()
+		return
+	}
+	c.JSON(200, gin.H{})
+	c.Abort()
 }
 
 func updateSdk(c *gin.Context) {
-	//TODO:检测sdk是对应game的，然后更新
+	sdk, err := game.GetSdksFromKnownGame(c)
+	if err != nil {
+		return
+	}
+	var input struct {
+		Name              string                `json:"name"`
+		Readme            string                `json:"readme"`
+		Sdk               *multipart.FileHeader `json:"sdk"`
+		BuildAiDockerfile string                `json:"build_ai_dockerfile"`
+		RunAiDockerfile   string                `json:"run_ai_dockerfile"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.Abort()
+		return
+	}
+	err = sdk.Update(map[string]interface{}{
+		"name":                input.Name,
+		"readme":              input.Readme,
+		"build_ai_dockerfile": input.BuildAiDockerfile,
+		"run_ai_dockerfile":   input.RunAiDockerfile,
+	})
+	if err != nil {
+		c.JSON(422, gin.H{"error": ErrorFor422{
+			Code:  Invalid,
+			Field: "cannot update sdk",
+		}})
+		c.Abort()
+		return
+	}
+	//saveSdkFile(sdk.ID,input.Sdk)
+	//TODO:往sdk中添加，存储文件至/var/hiper/sdks/sdks:id.xxx
+	c.JSON(200, gin.H{})
+	c.Abort()
 }
 
 func updateGameStates(c *gin.Context) {

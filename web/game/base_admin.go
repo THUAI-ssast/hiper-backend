@@ -1,7 +1,9 @@
 package game
 
 import (
+	"errors"
 	"hiper-backend/model"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -116,4 +118,44 @@ func RetGameSettings(c *gin.Context) {
 		},
 	})
 	c.Abort()
+}
+
+func GetSdksFromKnownGame(c *gin.Context) (model.Sdk, error) {
+	ingameID := c.MustGet("gameID").(int)
+	gameID := uint(ingameID)
+	str := c.Param("sdk_id")
+	num, err := strconv.ParseUint(str, 10, 32)
+	if err != nil {
+		c.JSON(400, gin.H{})
+	}
+	sdkID := uint(num)
+	baseContest, err := model.GetBaseContestByID(gameID)
+	if err != nil {
+		c.JSON(422, gin.H{"error": ErrorFor422{
+			Code:  Invalid,
+			Field: "cannot find game",
+		}})
+		c.Abort()
+		return model.Sdk{}, errors.New("cannot find game")
+	}
+	rawSdk, err := baseContest.GetSdks()
+	if err != nil {
+		c.JSON(422, gin.H{"error": ErrorFor422{
+			Code:  Invalid,
+			Field: "cannot find sdks",
+		}})
+		c.Abort()
+		return model.Sdk{}, errors.New("cannot find sdks")
+	}
+	for _, sdk := range rawSdk {
+		if sdk.ID == sdkID {
+			return sdk, nil
+		}
+	}
+	c.JSON(422, gin.H{"error": ErrorFor422{
+		Code:  Invalid,
+		Field: "cannot find sdk",
+	}})
+	c.Abort()
+	return model.Sdk{}, errors.New("cannot find sdk")
 }
