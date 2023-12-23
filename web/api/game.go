@@ -196,7 +196,8 @@ func relinquishAdmin(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	userID := c.MustGet("userID").(uint)
+	inuserID := c.MustGet("userID").(int)
+	userID := uint(inuserID)
 	game, err := model.GetGameById(gameID)
 	if err != nil {
 		c.JSON(422, gin.H{"error": ErrorFor422{

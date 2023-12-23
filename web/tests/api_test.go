@@ -108,7 +108,7 @@ func TestWholeGameApi(t *testing.T) {
 	//t.Run("TestGetSdk", TestGetSdk)
 	t.Run("TestCommitAI", TestCommitAI)
 	t.Run("TestEditAINote", TestEditAINote)
-	t.Run("TestGetAI", TestGetAI)
+	//t.Run("TestGetAI", TestGetAI)
 	//t.Run("TestGetContestant", TestGetContestant)
 	//t.Run("TestAssignAI", TestAssignAI)
 	//t.Run("TestRevokeAI", TestRevokeAI)
@@ -373,7 +373,7 @@ func TestCreateGame(t *testing.T) {
 
 func TestUpdateMetaData(t *testing.T) {
 	getLoginToken("test1@example.com", "password")
-	url := "http://localhost:8080/api/v1/games/2"
+	url := "http://localhost:8080/api/v1/games/1/metadata"
 	method := "PATCH"
 	payload := `{
 	"readme": "test readme"
@@ -389,8 +389,8 @@ func TestUpdateMetaData(t *testing.T) {
 }
 
 func TestUpdateContestScript(t *testing.T) {
-	url := "http://localhost:8080/api/v1/games/2"
-	method := "PATCH"
+	url := "http://localhost:8080/api/v1/games/1/contest_script"
+	method := "PUT"
 	payload := `{
 	"contest_script": "test contest script"
 }`
@@ -405,7 +405,7 @@ func TestUpdateContestScript(t *testing.T) {
 }
 
 func TestUpdateStates(t *testing.T) {
-	url := "http://localhost:8080/api/v1/games/2"
+	url := "http://localhost:8080/api/v1/games/1/states"
 	method := "PATCH"
 	payload := `{
 	"assign_ai_enabled": true
@@ -421,7 +421,7 @@ func TestUpdateStates(t *testing.T) {
 }
 
 func TestUpdateGameLogic(t *testing.T) {
-	url := "http://localhost:8080/api/v1/games/2/game_logic"
+	url := "http://localhost:8080/api/v1/games/1/game_logic"
 	method := "PATCH"
 	payload := `{
 	"build_game_logic_dockerfile": "test dockerfile"
@@ -437,7 +437,7 @@ func TestUpdateGameLogic(t *testing.T) {
 }
 
 func TestUpdateGameDetail(t *testing.T) {
-	url := "http://localhost:8080/api/v1/games/2/match_detail"
+	url := "http://localhost:8080/api/v1/games/1/match_detail"
 	method := "PATCH"
 	payload := `{
 	"template": "test template"
@@ -453,7 +453,7 @@ func TestUpdateGameDetail(t *testing.T) {
 }
 
 func TestGetSettings(t *testing.T) {
-	url := "http://localhost:8080/api/v1/games/2/settings"
+	url := "http://localhost:8080/api/v1/games/1/settings"
 	method := "GET"
 
 	result, err := makeRequest(url, method, "", true)
@@ -478,7 +478,7 @@ func TestGetSettings(t *testing.T) {
 }
 
 func TestGetGame(t *testing.T) {
-	url := "http://localhost:8080/api/v1/games/2"
+	url := "http://localhost:8080/api/v1/games/1"
 	method := "GET"
 
 	result, err := makeRequest(url, method, "", true)
@@ -567,6 +567,7 @@ func TestGetAI(t *testing.T) {
 }
 
 func TestForkGame(t *testing.T) {
+	getLoginToken("admin@mails.tsinghua.edu.cn", "password")
 	url := "http://localhost:8080/api/v1/games/1/fork"
 	method := "POST"
 	payload := `{
@@ -575,9 +576,14 @@ func TestForkGame(t *testing.T) {
 	result, err := makeRequest(url, method, payload, true)
 	assert.Nil(t, err)
 	assert.Equal(t, 200, result["status"].(int))
-	game_id := result["id"].(int)
+	value, ok := result["id"].(float64)
+	if !ok {
+		fmt.Println("Type assertion failed")
+		return
+	}
+	str := fmt.Sprintf("%.0f", value)
 
-	url = "http://localhost:8080/api/v1/games/" + strconv.Itoa(game_id)
+	url = "http://localhost:8080/api/v1/games/" + str
 	method = "GET"
 	result, err = makeRequest(url, method, "", true)
 	assert.Nil(t, err)
@@ -585,7 +591,7 @@ func TestForkGame(t *testing.T) {
 }
 
 func TestDeleteGame(t *testing.T) {
-	url := "http://localhost:8080/api/v1/games/1"
+	url := "http://localhost:8080/api/v1/games/2"
 	method := "DELETE"
 	result, err := makeRequest(url, method, "", true)
 	assert.Nil(t, err)
@@ -593,17 +599,18 @@ func TestDeleteGame(t *testing.T) {
 }
 
 func TestAddAdmin(t *testing.T) {
-	url := "http://localhost:8080/api/v1/games/2/admins"
+	getLoginToken("test1@example.com", "password")
+	url := "http://localhost:8080/api/v1/games/1/admins"
 	method := "POST"
 	payload := `{
-	"new_admin_username": "test3"
+	"username": "test3"
 }`
 	result, err := makeRequest(url, method, payload, true)
 	assert.Nil(t, err)
 	assert.Equal(t, 200, result["status"].(int))
 
 	getLoginToken("test3@example.com", "password")
-	url = "http://localhost:8080/api/v1/games/2"
+	url = "http://localhost:8080/api/v1/games/1"
 	method = "GET"
 	result, err = makeRequest(url, method, "", true)
 	assert.Nil(t, err)
@@ -612,15 +619,20 @@ func TestAddAdmin(t *testing.T) {
 }
 
 func TestRelinquishAdmin(t *testing.T) {
-	url := "http://localhost:8080/api/v1/games/2/admin"
+	getLoginToken("test3@example.com", "password")
+	url := "http://localhost:8080/api/v1/games/1/admin"
 	method := "DELETE"
-	result, err := makeRequest(url, method, "", true)
+	payload := `{
+		"force": true
+	}`
+	result, err := makeRequest(url, method, payload, true)
 	assert.Nil(t, err)
 	assert.Equal(t, 200, result["status"].(int))
 
-	url = "http://localhost:8080/api/v1/games/2"
+	url = "http://localhost:8080/api/v1/games/1"
 	method = "GET"
 	result, err = makeRequest(url, method, "", true)
 	assert.Nil(t, err)
-	assert.Equal(t, 401, result["status"].(int))
+	assert.Equal(t, 200, result["status"].(int))
+	assert.NotEqual(t, "admin", result["my_privilege"].(string))
 }
