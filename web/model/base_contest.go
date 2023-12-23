@@ -80,3 +80,10 @@ func (bc *BaseContest) UpdateContestantByUserID(userID uint, updates map[string]
 func (bc *BaseContest) DeleteContestantByUserID(userID uint) error {
 	return db.Where("base_contest_id = ? AND user_id = ?", bc.ID, userID).Delete(&Contestant{}).Error
 }
+
+// ai
+
+func (bc *BaseContest) GetAis(query QueryParams, preload bool) ([]Ai, int64, error) {
+	query.Filter["base_contest_id"] = bc.ID
+	return GetAis(query, preload)
+}
