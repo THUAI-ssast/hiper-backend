@@ -33,7 +33,7 @@ func init() {
 			Password: user.HashPassword("password"),
 			Email:    fmt.Sprintf("test%d@example.com", i),
 		}
-		err := model.CreateUser(&user)
+		err := user.Create()
 		if err != nil {
 			fmt.Printf("Failed to create user: %v", err)
 		}

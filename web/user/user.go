@@ -41,7 +41,7 @@ func RegisterUser(username string, email string, password string) (uint, error) 
 		Email:    email,
 		Password: hashedPassword,
 	}
-	if err := model.CreateUser(&user); err != nil {
+	if err := user.Create(); err != nil {
 		return 0, err
 	}
 	return user.ID, nil

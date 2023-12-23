@@ -30,9 +30,8 @@ type User struct {
 
 // CRUD: Create
 
-// CreateUser creates a user. `user`'s ID will be updated if the operation succeeds.
-func CreateUser(user *User) error {
-	return db.Create(user).Error
+func (u *User) Create() error {
+	return db.Create(u).Error
 }
 
 // CRUD: Read
@@ -45,7 +44,7 @@ func GetUserByEmail(email string, fields ...string) (User, error) {
 	return getUser(map[string]interface{}{"email": email}, fields...)
 }
 
-func GetUserById(id uint, fields ...string) (User, error) {
+func GetUserByID(id uint, fields ...string) (User, error) {
 	return getUser(map[string]interface{}{"id": id}, fields...)
 }
 
@@ -76,7 +75,7 @@ func UpdateUserByUsername(username string, updates map[string]interface{}) error
 	return updateUser(map[string]interface{}{"username": username}, updates)
 }
 
-func UpdateUserById(id uint, updates map[string]interface{}) error {
+func UpdateUserByID(id uint, updates map[string]interface{}) error {
 	return updateUser(map[string]interface{}{"id": id}, updates)
 }
 
@@ -86,6 +85,10 @@ func UpdateUserByEmail(email string, updates map[string]interface{}) error {
 
 func updateUser(condition map[string]interface{}, updates map[string]interface{}) error {
 	return db.Model(&User{}).Where(condition).Updates(updates).Error
+}
+
+func (u *User) Update(updates map[string]interface{}) error {
+	return db.Model(u).Updates(updates).Error
 }
 
 // associations
