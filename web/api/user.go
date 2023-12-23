@@ -276,7 +276,7 @@ func searchUsers(c *gin.Context) {
 			"answer": answer,
 		})
 	} else if userID != 0 {
-		usr, err := model.GetUserById((uint)(userID))
+		usr, err := model.GetUserByID((uint)(userID))
 		if err != nil {
 			c.JSON(404, gin.H{})
 		}
@@ -367,7 +367,7 @@ func getTheUser(c *gin.Context) {
 func getCurrentUser(c *gin.Context) {
 	userIDs, _ := c.Get("userID")
 	userID, _ := userIDs.(int)
-	usr, err := model.GetUserById((uint)(userID))
+	usr, err := model.GetUserByID((uint)(userID))
 	if err != nil {
 		c.JSON(404, gin.H{})
 	} else {
@@ -390,7 +390,7 @@ func getCurrentUser(c *gin.Context) {
 func updateCurrentUser(c *gin.Context) {
 	userIDs, _ := c.Get("userID")
 	userID, _ := userIDs.(int)
-	_, err := model.GetUserById((uint)(userID))
+	_, err := model.GetUserByID((uint)(userID))
 	if err != nil {
 		c.JSON(404, gin.H{})
 	} else {
@@ -442,7 +442,7 @@ func updateCurrentUser(c *gin.Context) {
 		}
 
 		if len(updates) > 0 {
-			err = model.UpdateUserById((uint)(userID), updates)
+			err = model.UpdateUserByID((uint)(userID), updates)
 			if err != nil {
 				c.JSON(422, gin.H{"error": ErrorFor422{
 					Code:  Invalid,
@@ -450,7 +450,7 @@ func updateCurrentUser(c *gin.Context) {
 				}})
 			}
 		}
-		usr, _ := model.GetUserById((uint)(userID))
+		usr, _ := model.GetUserByID((uint)(userID))
 		c.JSON(200, gin.H{
 			"avatar_url": usr.AvatarURL,
 			"username":   usr.Username,

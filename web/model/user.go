@@ -23,15 +23,15 @@ type User struct {
 	School      string
 	Username    string `gorm:"uniqueIndex,not null"`
 
-	GameAdmins    []Game    `gorm:"many2many:game_admins;"`
-	ContestAdmins []Contest `gorm:"many2many:contest_admins;"`
+	GameAdmins        []Game    `gorm:"many2many:game_admins;"`
+	ContestAdmins     []Contest `gorm:"many2many:contest_admins;"`
+	ContestRegistered []Contest `gorm:"many2many:contest_registrations;"`
 }
 
 // CRUD: Create
 
-// CreateUser creates a user. `user`'s ID will be updated if the operation succeeds.
-func CreateUser(user *User) error {
-	return db.Create(user).Error
+func (u *User) Create() error {
+	return db.Create(u).Error
 }
 
 // CRUD: Read
@@ -44,7 +44,7 @@ func GetUserByEmail(email string, fields ...string) (User, error) {
 	return getUser(map[string]interface{}{"email": email}, fields...)
 }
 
-func GetUserById(id uint, fields ...string) (User, error) {
+func GetUserByID(id uint, fields ...string) (User, error) {
 	return getUser(map[string]interface{}{"id": id}, fields...)
 }
 
@@ -75,7 +75,7 @@ func UpdateUserByUsername(username string, updates map[string]interface{}) error
 	return updateUser(map[string]interface{}{"username": username}, updates)
 }
 
-func UpdateUserById(id uint, updates map[string]interface{}) error {
+func UpdateUserByID(id uint, updates map[string]interface{}) error {
 	return updateUser(map[string]interface{}{"id": id}, updates)
 }
 
@@ -87,40 +87,42 @@ func updateUser(condition map[string]interface{}, updates map[string]interface{}
 	return db.Model(&User{}).Where(condition).Updates(updates).Error
 }
 
+func (u *User) Update(updates map[string]interface{}) error {
+	return db.Model(u).Updates(updates).Error
+}
+
 // associations
 
 // admin
 
 func (u *User) GetGameAdmins(fields ...string) ([]Game, error) {
 	var games []Game
-	err := db.Model(u).Select(fields).Association("GameAdmins").Find(&games)
+	err := db.Model(u).Select(fields).Preload("BaseContest", func(db *gorm.DB) *gorm.DB {
+		return db.Select("game_id", "states")
+	}).Association("GameAdmins").Find(&games)
 	return games, err
 }
 
 func (u *User) GetContestAdmins(fields ...string) ([]Contest, error) {
 	var contests []Contest
-	err := db.Model(u).Select(fields).Association("ContestAdmins").Find(&contests)
+	err := db.Model(u).Select(fields).Preload("BaseContest", func(db *gorm.DB) *gorm.DB {
+		return db.Select("game_id", "states")
+	}).Association("ContestAdmins").Find(&contests)
 	return contests, err
 }
 
-// contestant
-
-// GetContestants returns the contestants of the user.
-// If `preload` is true, contest information will be preloaded.
-func (u *User) GetContestants(preload bool) ([]Contestant, error) {
-	if preload {
-		return getContestants(map[string]interface{}{"user_id": u.ID}, preloadQuery{
-			"Contest", []string{"id", "cover_url", "title", "public_match_enabled"},
-		})
-	} else {
-		return getContestants(map[string]interface{}{"user_id": u.ID}, preloadQuery{})
-	}
+func (u *User) GetContestRegistered(fields ...string) ([]Contest, error) {
+	var contests []Contest
+	err := db.Model(u).Select(fields).Preload("BaseContest", func(db *gorm.DB) *gorm.DB {
+		return db.Select("game_id", "states")
+	}).Association("ContestRegistered").Find(&contests)
+	return contests, err
 }
 
 // Irregular CRUD
 
 // UpsertUser upserts a user.
-// If the user exists(determinated by username), update its password.
+// If the user exists(determined by username), update its password.
 // If the user does not exist, create it.
 func UpsertUser(user User) {
 	// Find the user by username or create a new one
