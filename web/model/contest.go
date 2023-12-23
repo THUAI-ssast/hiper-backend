@@ -13,7 +13,8 @@ type Contest struct {
 	Metadata Metadata `gorm:"embedded"`
 	Admins   []User   `gorm:"many2many:contest_admins;"`
 
-	Registration Registration `gorm:"embedded"`
+	Registration    Registration `gorm:"embedded"`
+	RegisteredUsers []User       `gorm:"many2many:contest_registrations;"`
 }
 
 type ContestPrivilege string
@@ -67,7 +68,7 @@ func (c *Contest) GetPrivilege(userId uint) (ContestPrivilege, error) {
 		return ContestPrivilegeAdmin, nil
 	}
 	// check if the user is registered
-	if err := db.Model(&Contestant{}).Where("base_contest_id = ? AND user_id = ?", c.BaseContestId, userId).Count(&count).Error; err != nil {
+	if err := db.Table("contest_registrations").Where("contest_id = ? AND user_id = ?", c.ID, userId).Count(&count).Error; err != nil {
 		return "", err
 	}
 	if count > 0 {
