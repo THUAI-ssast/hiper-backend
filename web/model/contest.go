@@ -28,11 +28,7 @@ type Registration struct {
 	Password            string
 }
 
-func GetContestById(id uint, fields ...string) (Contest, error) {
-	var contest Contest
-	err := db.Select(fields).First(&contest, id).Error
-	return contest, err
-}
+// CRUD: Create
 
 func (c *Contest) Create(gameID uint, adminIDs []uint) error {
 	// link a base contest or create a new one
