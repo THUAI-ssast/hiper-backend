@@ -7,6 +7,8 @@ import (
 
 	"hiper-backend/mail"
 	"hiper-backend/model"
+
+	"github.com/gin-gonic/gin"
 )
 
 func GenValidateCode(width int) string {
@@ -45,4 +47,64 @@ func RegisterUser(username string, email string, password string) (uint, error) 
 		return 0, err
 	}
 	return user.ID, nil
+}
+
+func ReturnWithUser(c *gin.Context, usr model.User, err error) {
+	if err != nil {
+		c.JSON(404, gin.H{})
+		c.Abort()
+		return
+	} else {
+		baseContests, err := usr.GetContestRegistered()
+		if err != nil {
+			c.JSON(404, gin.H{})
+			c.Abort()
+			return
+		}
+		registered := make([]map[string]interface{}, 0)
+		for _, game := range baseContests {
+			if err != nil {
+				c.JSON(404, gin.H{})
+				c.Abort()
+				return
+			}
+			myPrivilege := "registered"
+			pri, _ := game.GetPrivilege(usr.ID)
+			if pri == "admin" {
+				myPrivilege = "admin"
+			}
+			registered = append(registered, map[string]interface{}{
+				"game_id": game.ID,
+				"metadata": map[string]interface{}{
+					"cover_url": game.Metadata.CoverUrl,
+					"readme":    game.Metadata.Readme,
+					"title":     game.Metadata.Title,
+				},
+				"states": map[string]interface{}{
+					"commit_ai_enabled":                  game.BaseContest.States.CommitAiEnabled,
+					"assign_ai_enabled":                  game.BaseContest.States.AssignAiEnabled,
+					"public_match_enabled":               game.BaseContest.States.PublicMatchEnabled,
+					"contest_script_environment_enabled": game.BaseContest.States.ContestScriptEnvironmentEnabled,
+					"private_match_enabled":              game.BaseContest.States.PrivateMatchEnabled,
+					"test_match_enabled":                 game.BaseContest.States.TestMatchEnabled,
+				},
+				"id":           game.ID,
+				"my_privilege": myPrivilege,
+			})
+		}
+		c.JSON(200, gin.H{
+			"avatar_url": usr.AvatarURL,
+			"bio":        usr.Bio,
+			"department": usr.Department,
+			"name":       usr.Name,
+			"permissions": map[string]bool{
+				"can_create_game_or_contest": usr.Permissions.CanCreateGameOrContest,
+			},
+			"school":              usr.School,
+			"username":            usr.Username,
+			"email":               usr.Email,
+			"contests_registered": registered,
+		})
+		c.Abort()
+	}
 }

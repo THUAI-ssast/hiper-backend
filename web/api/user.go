@@ -413,134 +413,14 @@ func searchUsers(c *gin.Context) {
 func getTheUser(c *gin.Context) {
 	username := c.Param("username")
 	usr, err := model.GetUserByUsername(username)
-	if err != nil {
-		c.JSON(404, gin.H{})
-		c.Abort()
-		return
-	} else {
-		contestant, err := model.GetContestantsByUserId(usr.ID)
-		if err != nil {
-			c.JSON(404, gin.H{})
-			c.Abort()
-			return
-		}
-		registered := make([]map[string]interface{}, 0)
-		for _, ct := range contestant {
-			if ct.BaseContestID == 0 {
-				continue
-			}
-			game, err := model.GetContestById(ct.BaseContestID)
-			if err != nil {
-				c.JSON(404, gin.H{})
-				c.Abort()
-				return
-			}
-			myPrivilege := "registered"
-			pri, _ := game.GetPrivilege(usr.ID)
-			if pri == "admin" {
-				myPrivilege = "admin"
-			}
-			registered = append(registered, map[string]interface{}{
-				"game_id": ct.BaseContestID,
-				"metadata": map[string]interface{}{
-					"cover_url": game.Metadata.CoverUrl,
-					"readme":    game.Metadata.Readme,
-					"title":     game.Metadata.Title,
-				},
-				"states": map[string]interface{}{
-					"commit_ai_enabled":                  game.BaseContest.States.CommitAiEnabled,
-					"assign_ai_enabled":                  game.BaseContest.States.AssignAiEnabled,
-					"public_match_enabled":               game.BaseContest.States.PublicMatchEnabled,
-					"contest_script_environment_enabled": game.BaseContest.States.ContestScriptEnvironmentEnabled,
-					"private_match_enabled":              game.BaseContest.States.PrivateMatchEnabled,
-					"test_match_enabled":                 game.BaseContest.States.TestMatchEnabled,
-				},
-				"id":           ct.ID,
-				"my_privilege": myPrivilege,
-			})
-		}
-		c.JSON(200, gin.H{
-			"avatar_url": usr.AvatarURL,
-			"bio":        usr.Bio,
-			"department": usr.Department,
-			"name":       usr.Name,
-			"permissions": map[string]bool{
-				"can_create_game_or_contest": usr.Permissions.CanCreateGameOrContest,
-			},
-			"school":              usr.School,
-			"username":            usr.Username,
-			"email":               usr.Email,
-			"contests_registered": registered,
-		})
-		c.Abort()
-	}
+	user.ReturnWithUser(c, usr, err)
 }
 
 func getCurrentUser(c *gin.Context) {
 	userIDs, _ := c.Get("userID")
 	userID, _ := userIDs.(int)
 	usr, err := model.GetUserByID((uint)(userID))
-	if err != nil {
-		c.JSON(404, gin.H{})
-		c.Abort()
-		return
-	} else {
-		contestant, err := model.GetContestantsByUserId(usr.ID)
-		if err != nil {
-			c.JSON(404, gin.H{})
-			c.Abort()
-			return
-		}
-		registered := make([]map[string]interface{}, 0)
-		for _, ct := range contestant {
-			if ct.BaseContestID == 0 {
-				continue
-			}
-			game, err := model.GetContestById(ct.BaseContestID)
-			if err != nil {
-				c.JSON(404, gin.H{})
-				c.Abort()
-				return
-			}
-			myPrivilege := "registered"
-			pri, _ := game.GetPrivilege(usr.ID)
-			if pri == "admin" {
-				myPrivilege = "admin"
-			}
-			registered = append(registered, map[string]interface{}{
-				"game_id": ct.BaseContestID,
-				"metadata": map[string]interface{}{
-					"cover_url": game.Metadata.CoverUrl,
-					"readme":    game.Metadata.Readme,
-					"title":     game.Metadata.Title,
-				},
-				"states": map[string]interface{}{
-					"commit_ai_enabled":                  game.BaseContest.States.CommitAiEnabled,
-					"assign_ai_enabled":                  game.BaseContest.States.AssignAiEnabled,
-					"public_match_enabled":               game.BaseContest.States.PublicMatchEnabled,
-					"contest_script_environment_enabled": game.BaseContest.States.ContestScriptEnvironmentEnabled,
-					"private_match_enabled":              game.BaseContest.States.PrivateMatchEnabled,
-					"test_match_enabled":                 game.BaseContest.States.TestMatchEnabled,
-				},
-				"id":           ct.ID,
-				"my_privilege": myPrivilege,
-			})
-		}
-		c.JSON(200, gin.H{
-			"avatar_url": usr.AvatarURL,
-			"bio":        usr.Bio,
-			"department": usr.Department,
-			"name":       usr.Name,
-			"permissions": map[string]bool{
-				"can_create_game_or_contest": usr.Permissions.CanCreateGameOrContest,
-			},
-			"school":              usr.School,
-			"username":            usr.Username,
-			"email":               usr.Email,
-			"contests_registered": registered,
-		})
-		c.Abort()
-	}
+	user.ReturnWithUser(c, usr, err)
 }
 
 func updateCurrentUser(c *gin.Context) {

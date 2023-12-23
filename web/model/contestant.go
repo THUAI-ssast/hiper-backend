@@ -39,11 +39,6 @@ func GetContestants(filter map[string]interface{}, preloads []preloadQuery) ([]C
 	return contestants, err
 }
 
-func GetContestantsByUserId(userId uint, fields ...string) ([]Contestant, error) {
-	return GetContestants(map[string]interface{}{"user_id": userId}, nil)
-}
-
-// TODO: add CRUD functions for contestant
 func GetContestant(condition map[string]interface{}, preloads []preloadQuery) (Contestant, error) {
 	contestants, err := GetContestants(condition, preloads)
 	return contestants[0], err
