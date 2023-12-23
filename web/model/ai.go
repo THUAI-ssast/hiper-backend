@@ -38,25 +38,18 @@ func (a *Ai) Create() error {
 
 // CRUD: Read
 
-// If preload is true, sdk and user will be preloaded, but only some basic fields.
-// sdk: id, name
-// user: avatar_url, nickname, username
+// If preload is true, the following fields will be preloaded:
+// Sdk.ID, Sdk.Name
+// User.AvatarURL, User.Nickname, User.Username
 func GetAis(query QueryParams, preload bool) (ais []Ai, count int64, err error) {
-	tx := db.Select(query.Fields).Where(query.Filter)
+	tx := db.Order("id DESC")
 	if preload {
 		tx = addPreloadsForAi(tx)
 	}
-	tx = tx.Session(&gorm.Session{})
-
 	if query.Limit == 0 {
 		query.Limit = 20
 	}
-	if err = tx.Limit(query.Limit).Offset(query.Offset).Find(&ais).Error; err != nil {
-		return nil, 0, err
-	}
-	if err = tx.Count(&count).Error; err != nil {
-		return nil, 0, err
-	}
+	count, err = paginate(tx, query, &ais)
 	return ais, count, nil
 }
 
