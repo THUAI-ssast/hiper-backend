@@ -4,13 +4,13 @@ import (
 	"hiper-backend/model"
 )
 
-func AddMatch(userIDs []uint, baseContestID uint) (matchID uint, err error) {
+func AddMatch(userIDs []uint, baseContestID uint, tag string) (matchID uint, err error) {
 	match := model.Match{}
 	err = match.Create(userIDs)
 	if err != nil {
 		return 0, err
 	}
-	err = model.UpdateMatchByID(match.ID, map[string]interface{}{"base_contest_id": baseContestID})
+	err = model.UpdateMatchByID(match.ID, map[string]interface{}{"base_contest_id": baseContestID, "tag": tag})
 	if err != nil {
 		return 0, err
 	}
