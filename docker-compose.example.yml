@@ -49,18 +49,17 @@ services:
   #   volumes:
   #     - hiper_data:/var/hiper
 
-  # nginx:
-  #   image: nginx:latest
-  #   depends_on:
-  #     - web
-  #   ports:
-  #     - "80:80"
-  #   volumes:
-  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-  #     - ../hiper-frontend/app:/usr/share/nginx/html
-  #   networks:
-  #     - hiper
-
+  nginx:
+    image: nginx:latest
+    depends_on:
+      - web
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./dist:/usr/share/nginx/html
+    networks:
+      - hiper
 
 networks:
   hiper:

@@ -26,3 +26,6 @@ config.toml
 
 # Go workspace file
 go.work
+
+# Front-end build output
+dist/
