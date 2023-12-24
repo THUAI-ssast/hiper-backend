@@ -9,6 +9,18 @@ type BaseContest struct {
 	Script string
 }
 
+// fields that selected when querying base contests
+var baseContestBaseFields = []string{
+	"id",
+	"game_id",
+	"assign_ai_enabled",
+	"commit_ai_enabled",
+	"contest_script_environment_enabled",
+	"private_match_enabled",
+	"public_match_enabled",
+	"test_match_enabled",
+}
+
 type Metadata struct {
 	CoverUrl string
 	Readme   string
