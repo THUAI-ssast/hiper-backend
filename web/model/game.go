@@ -6,9 +6,10 @@ import (
 
 type Game struct {
 	gorm.Model
-	BaseContest
+	BaseContest BaseContest `gorm:"foreignKey:ID"`
 
-	Admins []User `gorm:"many2many:game_admins;"`
+	Metadata Metadata `gorm:"embedded"`
+	Admins   []User   `gorm:"many2many:game_admins;"`
 
 	// game assets
 	GameLogic   GameLogic   `gorm:"embedded;embeddedPrefix:game_logic_"`
@@ -34,53 +35,74 @@ type MatchDetail struct {
 
 // CRUD: Create
 
-func (g *Game) AfterCreate(tx *gorm.DB) (err error) {
-	g.GameId = g.ID
-	return tx.Save(g).Error
-}
-
-func CreateGame(game *Game, adminIDs []uint) error {
-	admins := make([]User, len(adminIDs))
-	for i, id := range adminIDs {
-		admins[i] = User{Model: gorm.Model{ID: id}}
+func (g *Game) Create(adminIDs []uint) error {
+	// link a base contest or create a new one
+	if g.ID != 0 {
+		if err := db.First(&g.BaseContest, g.ID).Error; err != nil {
+			return err
+		}
+	} else {
+		if err := db.Create(&g.BaseContest).Error; err != nil {
+			return err
+		}
 	}
-	game.Admins = admins
-	return db.Create(game).Error
+	// create game
+	g.ID = g.BaseContest.ID
+	for _, id := range adminIDs {
+		user := User{Model: gorm.Model{ID: id}}
+		g.Admins = append(g.Admins, user)
+	}
+	if err := db.Create(g).Error; err != nil {
+		return err
+	}
+	// update base contest's game_id
+	return db.Model(&g.BaseContest).Update("game_id", g.ID).Error
 }
 
 // CRUD: Read
 
-// Here readme is truncated to 100 characters.
-func GetGames(fields ...string) ([]Game, error) {
-	var games []Game
-	err := db.Select(fields).Find(&games).Error
-	return games, err
+func GetGames(fields ...string) (games []Game, err error) {
+	tx := db.Preload("BaseContest", func(db *gorm.DB) *gorm.DB {
+		return db.Select(baseContestBaseFields)
+	})
+	if len(fields) > 0 {
+		tx = tx.Select(fields)
+	}
+	err = tx.Find(&games).Error
+	return
 }
 
-func GetGameById(id uint, fields ...string) (Game, error) {
-	var game Game
-	err := db.Select(fields).First(&game, id).Error
-	return game, err
+func GetGameByID(id uint, fields ...string) (game Game, err error) {
+	err = db.Preload("BaseContest").First(&game, id).Error
+	return
 }
 
 // CRUD: Update
 
-func UpdateGameById(id uint, updates map[string]interface{}) error {
+func UpdateGameByID(id uint, updates map[string]interface{}) error {
 	return db.Model(&Game{}).Where("id = ?", id).Updates(updates).Error
+}
+
+func (g *Game) Update(updates map[string]interface{}) error {
+	return db.Model(g).Updates(updates).Error
 }
 
 // CRUD: Delete
 
-func DeleteGameById(id uint) error {
+func DeleteGameByID(id uint) error {
 	return db.Delete(&Game{}, id).Error
+}
+
+func (g *Game) Delete() error {
+	return db.Delete(g).Error
 }
 
 // associations
 
 // Note: Game doesn't need registration
-func (g *Game) GetPrivilege(userId uint) (GamePrivilege, error) {
+func (g *Game) GetPrivilege(userID uint) (GamePrivilege, error) {
 	var count int64
-	err := db.Table("game_admins").Where("game_id = ? AND user_id = ?", g.ID, userId).Count(&count).Error
+	err := db.Table("game_admins").Where("game_id = ? AND user_id = ?", g.ID, userID).Count(&count).Error
 	if err != nil {
 		return "", err
 	}
@@ -92,8 +114,8 @@ func (g *Game) GetPrivilege(userId uint) (GamePrivilege, error) {
 
 // admin
 
-func (g *Game) AddAdmin(userId uint) error {
-	user := User{Model: gorm.Model{ID: userId}}
+func (g *Game) AddAdmin(userID uint) error {
+	user := User{Model: gorm.Model{ID: userID}}
 	return db.Model(g).Association("Admins").Append(&user)
 }
 
@@ -103,43 +125,9 @@ func (g *Game) GetAdmins() ([]User, error) {
 	return admins, err
 }
 
-func (g *Game) RemoveAdmin(userId uint) error {
-	user := User{Model: gorm.Model{ID: userId}}
+func (g *Game) RemoveAdmin(userID uint) error {
+	user := User{Model: gorm.Model{ID: userID}}
 	return db.Model(g).Association("Admins").Delete(&user)
 }
 
-// contestant
-
-// GetContestants returns all contestants in the game.
-// By default, sorted by points in descending order.
-func (g *Game) GetContestants(fields ...string) ([]Contestant, error) {
-	return getContestants(map[string]interface{}{"game_id": g.ID, "contest_id": 0}, fields...)
-}
-
-// Ai
-
-func (g *Game) GetAis(query QueryParams) ([]Ai, int64, error) {
-	if query.Filter == nil {
-		query.Filter = make(map[string]interface{})
-	}
-	query.Filter["game_id"] = g.ID
-	query.Filter["contest_id"] = 0
-	return GetAis(query)
-}
-
-// Match
-
-func (g *Game) GetMatches(query QueryParams) ([]Match, int64, error) {
-	if query.Filter == nil {
-		query.Filter = make(map[string]interface{})
-	}
-	query.Filter["game_id"] = g.ID
-	query.Filter["contest_id"] = 0
-	return GetMatches(query)
-}
-
-// Sdk
-
-func (g *Game) GetSdks(fields ...string) ([]Sdk, error) {
-	return GetSdks(map[string]interface{}{"game_id": g.ID, "contest_id": 0}, fields...)
-}
+// TODO:game logic files

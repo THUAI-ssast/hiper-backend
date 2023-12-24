@@ -3,7 +3,10 @@ package api
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
+
+	"hiper-backend/model"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
@@ -68,5 +71,36 @@ func loginVerify() gin.HandlerFunc {
 			c.Set("userID", (int)(claims.UserID))
 			c.Next()
 		}
+	}
+}
+
+func privilegeCheck() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		gameID := c.Param("id") // 从路径中获取 gameID
+		id, _ := strconv.ParseUint(gameID, 10, 32)
+		game, err := model.GetGameByID((uint)(id)) // 使用 gameID 获取 game
+		if err != nil {
+			c.JSON(422, gin.H{"error": ErrorFor422{
+				Code:   Invalid,
+				Field:  "game",
+				Detail: "game not found",
+			}})
+			c.Abort()
+			return
+		}
+		userID := uint(c.MustGet("userID").(int))
+		privilege, err := game.GetPrivilege(userID)
+		if err != nil {
+			c.JSON(401, gin.H{"error": "Unauthorized"})
+			c.Abort()
+			return
+		}
+		if privilege != model.GamePrivilegeAdmin {
+			c.JSON(401, gin.H{"error": "Unauthorized"})
+			c.Abort()
+			return
+		}
+		c.Set("gameID", (int)(id))
+		c.Next()
 	}
 }
