@@ -44,7 +44,7 @@ func addPreloads(tx *gorm.DB, preloads []preloadQuery) *gorm.DB {
 }
 
 func SaveVerificationCode(code string, email string, expireInMinutes int) error {
-	err := rdb.Set(ctx, email, code, time.Duration(expireInMinutes)*time.Minute).Err()
+	err := Rdb.Set(ctx, email, code, time.Duration(expireInMinutes)*time.Minute).Err()
 	if err != nil {
 		return err
 	}
@@ -52,7 +52,7 @@ func SaveVerificationCode(code string, email string, expireInMinutes int) error 
 }
 
 func GetVerificationCode(email string) (string, error) {
-	code, err := rdb.Get(ctx, email).Result()
+	code, err := Rdb.Get(ctx, email).Result()
 	if err != nil {
 		return "", err
 	}

@@ -3,6 +3,7 @@ package api
 import (
 	"hiper-backend/game"
 	"hiper-backend/model"
+	"hiper-backend/mq"
 	"mime/multipart"
 	"net/http"
 	"strconv"
@@ -207,6 +208,7 @@ func addSdk(c *gin.Context) {
 	}
 	//saveSdkFile(sdk.ID,input.Sdk)
 	//TODO:往sdk中添加，存储文件至/var/hiper/sdks/sdks:id.xxx
+	mq.SendBuildSdkMsg(model.Ctx, sdk.ID)
 	c.JSON(200, gin.H{})
 	c.Abort()
 }
@@ -506,7 +508,8 @@ func commitAi(c *gin.Context) {
 
 	// TODO: 上传文件、更新数据库
 	// update???
-
+	//TODO:以下的两个其实均为AIID，需要修改
+	mq.SendBuildAIMsg(model.Ctx, uint(gameID))
 	c.JSON(http.StatusOK, gin.H{"id": gameID})
 }
 
