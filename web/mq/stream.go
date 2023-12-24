@@ -10,7 +10,7 @@ import (
 func sendMsg(ctx context.Context, msg *Msg) error {
 	return model.Rdb.XAdd(ctx, &redis.XAddArgs{
 		Stream: msg.Topic,
-		MaxLen: 1000000,
+		MaxLen: 0,
 		Approx: true,
 		ID:     "*",
 		Values: []interface{}{"body", msg.Body, "type", msg.Type},

@@ -49,6 +49,14 @@ func SendBuildMatchMsg(ctx context.Context, matchID uint) error {
 	})
 }
 
+func SendChangeMatchMsg(ctx context.Context, matchID uint) error {
+	return sendMsg(ctx, &Msg{
+		Topic: "Change",
+		Body:  []byte(fmt.Sprintf("%d", matchID)),
+		Type:  "Match",
+	})
+}
+
 func SendRunMatchMsg(ctx context.Context, matchID uint) error {
 	return sendMsg(ctx, &Msg{
 		Topic: "Run",
