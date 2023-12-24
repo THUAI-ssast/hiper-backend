@@ -130,6 +130,34 @@ func forkGame(c *gin.Context) {
 	c.JSON(200, gin.H{"id": tempGame.ID})
 	c.Abort()
 }
+func getGames(c *gin.Context) {
+	//TODO:未验证
+	games, err := model.GetGames()
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Internal Server Error"})
+		return
+	}
+
+	var gamesList []gin.H
+	for _, game := range games {
+		userID := c.MustGet("userID").(int)
+		pri, err := game.GetPrivilege(uint(userID))
+		if err != nil {
+			c.JSON(500, gin.H{})
+			return
+		}
+		gameData := gin.H{
+			"id":           game.ID,
+			"game_id":      game.BaseContest.GameID,
+			"metadata":     game.Metadata,
+			"states":       game.BaseContest.States,
+			"my_privilege": pri,
+		}
+		gamesList = append(gamesList, gameData)
+	}
+
+	c.JSON(200, gamesList)
+}
 
 func getGameSettings(c *gin.Context) {
 	game.RetGameSettings(c)

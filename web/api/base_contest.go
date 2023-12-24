@@ -344,34 +344,6 @@ func updateGameStates(c *gin.Context) {
 	c.Abort()
 }
 
-func getGames(c *gin.Context) {
-	games, err := model.GetGames()
-	if err != nil {
-		c.JSON(500, gin.H{"error": "Internal Server Error"})
-		return
-	}
-
-	var gamesList []gin.H
-	for _, game := range games {
-		userID := c.MustGet("userID").(int)
-		pri, err := game.GetPrivilege(uint(userID))
-		if err != nil {
-			c.JSON(500, gin.H{})
-			return
-		}
-		gameData := gin.H{
-			"id":           game.ID,
-			"game_id":      game.BaseContest.GameID,
-			"metadata":     game.Metadata,
-			"states":       game.BaseContest.States,
-			"my_privilege": pri,
-		}
-		gamesList = append(gamesList, gameData)
-	}
-
-	c.JSON(200, gamesList)
-}
-
 func getTheGame(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {

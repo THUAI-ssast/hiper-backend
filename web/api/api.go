@@ -15,6 +15,7 @@ func ApiListenHttp() {
 	addUserRoutes(r)
 	addPermissionRoutes(r)
 	addGameRoutes(r)
+	addContestRoutes(r)
 	addBaseContestRoutes(r)
 	// TODO: add more routes
 
@@ -74,6 +75,7 @@ func addGameRoutes(r *gin.Engine) {
 		//此后的路由都需要验证是否登录.在其内部，我们可以使用userID := c.MustGet("userID").(int)来获取当前登录用户的ID
 		auth := v1.Group("/", loginVerify())
 		{
+			auth.GET("/games", getGames)
 			auth.POST("/games", createGame)
 			auth.POST("/games/:id/fork", forkGame)
 			//此后的路由都需要验证是否是管理员.在其内部，我们可以使用gameID := c.MustGet("gameID").(int)来获取当前游戏的ID
@@ -87,13 +89,23 @@ func addGameRoutes(r *gin.Engine) {
 	}
 }
 
+func addContestRoutes(r *gin.Engine) {
+	v1 := r.Group("/api/v1")
+	{
+		//此后的路由都需要验证是否登录.在其内部，我们可以使用userID := c.MustGet("userID").(int)来获取当前登录用户的ID
+		auth := v1.Group("/", loginVerify())
+		{
+			auth.GET("/contests", getContests)
+		}
+	}
+}
+
 func addBaseContestRoutes(r *gin.Engine) {
 	v1 := r.Group("/api/v1")
 	{
 		//此后的路由都需要验证是否登录.在其内部，我们可以使用userID := c.MustGet("userID").(int)来获取当前登录用户的ID
 		auth := v1.Group("/", loginVerify())
 		{
-			auth.GET("/games", getGames)
 			auth.GET("/games/:id", getTheGame)
 			auth.GET("/games/:id/ais", getAis)
 			auth.POST("/games/:id/ais", commitAi)
