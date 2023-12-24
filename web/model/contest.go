@@ -58,7 +58,7 @@ func (c *Contest) Create(gameID uint, adminIDs []uint) error {
 
 func GetContests(fields ...string) (contests []Contest, err error) {
 	tx := db.Preload("BaseContest", func(db *gorm.DB) *gorm.DB {
-		return db.Select("id", "game_id", "states")
+		return db.Select(baseContestBaseFields)
 	})
 	if len(fields) > 0 {
 		tx = tx.Select(fields)

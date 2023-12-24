@@ -98,7 +98,7 @@ func (u *User) Update(updates map[string]interface{}) error {
 func (u *User) GetGameAdmins(fields ...string) ([]Game, error) {
 	var games []Game
 	err := db.Model(u).Select(fields).Preload("BaseContest", func(db *gorm.DB) *gorm.DB {
-		return db.Select("game_id", "states")
+		return db.Select(baseContestBaseFields)
 	}).Association("GameAdmins").Find(&games)
 	return games, err
 }
@@ -106,7 +106,7 @@ func (u *User) GetGameAdmins(fields ...string) ([]Game, error) {
 func (u *User) GetContestAdmins(fields ...string) ([]Contest, error) {
 	var contests []Contest
 	err := db.Model(u).Select(fields).Preload("BaseContest", func(db *gorm.DB) *gorm.DB {
-		return db.Select("game_id", "states")
+		return db.Select(baseContestBaseFields)
 	}).Association("ContestAdmins").Find(&contests)
 	return contests, err
 }
@@ -114,7 +114,7 @@ func (u *User) GetContestAdmins(fields ...string) ([]Contest, error) {
 func (u *User) GetContestRegistered(fields ...string) ([]Contest, error) {
 	var contests []Contest
 	err := db.Model(u).Select(fields).Preload("BaseContest", func(db *gorm.DB) *gorm.DB {
-		return db.Select("game_id", "states")
+		return db.Select(baseContestBaseFields)
 	}).Association("ContestRegistered").Find(&contests)
 	return contests, err
 }
