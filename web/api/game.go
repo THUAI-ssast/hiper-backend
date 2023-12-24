@@ -131,7 +131,6 @@ func forkGame(c *gin.Context) {
 	c.Abort()
 }
 func getGames(c *gin.Context) {
-	//TODO:未验证
 	games, err := model.GetGames()
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Internal Server Error"})
@@ -147,10 +146,20 @@ func getGames(c *gin.Context) {
 			return
 		}
 		gameData := gin.H{
+			"base_contest": gin.H{
+				"id":      game.ID,
+				"game_id": game.BaseContest.GameID,
+				"states": gin.H{
+					"assign_ai_enabled":                  game.BaseContest.States.AssignAiEnabled,
+					"commit_ai_enabled":                  game.BaseContest.States.CommitAiEnabled,
+					"contest_script_environment_enabled": game.BaseContest.States.ContestScriptEnvironmentEnabled,
+					"private_match_enabled":              game.BaseContest.States.PrivateMatchEnabled,
+					"public_match_enabled":               game.BaseContest.States.PublicMatchEnabled,
+					"test_match_enabled":                 game.BaseContest.States.TestMatchEnabled,
+				},
+			},
 			"id":           game.ID,
-			"game_id":      game.BaseContest.GameID,
 			"metadata":     game.Metadata,
-			"states":       game.BaseContest.States,
 			"my_privilege": pri,
 		}
 		gamesList = append(gamesList, gameData)

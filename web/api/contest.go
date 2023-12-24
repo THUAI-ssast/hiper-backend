@@ -24,10 +24,20 @@ func getContests(c *gin.Context) {
 			return
 		}
 		contestData := gin.H{
+			"base_contest": gin.H{
+				"id":      contest.ID,
+				"game_id": contest.BaseContest.GameID,
+				"states": gin.H{
+					"assign_ai_enabled":                  contest.BaseContest.States.AssignAiEnabled,
+					"commit_ai_enabled":                  contest.BaseContest.States.CommitAiEnabled,
+					"contest_script_environment_enabled": contest.BaseContest.States.ContestScriptEnvironmentEnabled,
+					"private_match_enabled":              contest.BaseContest.States.PrivateMatchEnabled,
+					"public_match_enabled":               contest.BaseContest.States.PublicMatchEnabled,
+					"test_match_enabled":                 contest.BaseContest.States.TestMatchEnabled,
+				},
+			},
 			"id":           contest.ID,
-			"game_id":      contest.BaseContest.GameID,
 			"metadata":     contest.Metadata,
-			"states":       contest.BaseContest.States,
 			"my_privilege": pri,
 		}
 		contestsList = append(contestsList, contestData)
