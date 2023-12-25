@@ -86,7 +86,7 @@ func privilegeCheck() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		gameID := c.Param("id") // 从路径中获取 gameID
 		id, _ := strconv.ParseUint(gameID, 10, 32)
-		game, err := model.GetGameByID((uint)(id)) // 使用 gameID 获取 game
+		game, err := model.GetBaseContestByID(uint(id))
 		if err != nil {
 			c.JSON(422, gin.H{"error": ErrorFor422{
 				Code:   Invalid,
@@ -97,13 +97,13 @@ func privilegeCheck() gin.HandlerFunc {
 			return
 		}
 		userID := uint(c.MustGet("userID").(int))
-		privilege, err := game.GetPrivilege(userID)
+		privilege, err := game.IsAdmin(userID)
 		if err != nil {
 			c.JSON(401, gin.H{"error": "Unauthorized"})
 			c.Abort()
 			return
 		}
-		if privilege != model.GamePrivilegeAdmin {
+		if !privilege {
 			c.JSON(401, gin.H{"error": "Unauthorized"})
 			c.Abort()
 			return

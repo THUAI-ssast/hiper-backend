@@ -13,13 +13,13 @@ import (
 func createGame(c *gin.Context) {
 	inuserID := c.MustGet("userID").(int)
 	userID := uint(inuserID)
-	userr, err := model.GetUserByID(userID)
+	usr, err := model.GetUserByID(userID)
 	if err != nil {
 		c.JSON(401, gin.H{})
 		c.Abort()
 		return
 	}
-	if !userr.Permissions.CanCreateGameOrContest {
+	if !usr.Permissions.CanCreateGameOrContest {
 		c.JSON(403, gin.H{})
 		c.Abort()
 		return
@@ -139,8 +139,6 @@ func getGames(c *gin.Context) {
 
 	var gamesList []gin.H
 	for _, game := range games {
-		userID := c.MustGet("userID").(int)
-		pri, err := game.GetPrivilege(uint(userID))
 		if err != nil {
 			c.JSON(500, gin.H{})
 			return
@@ -158,9 +156,8 @@ func getGames(c *gin.Context) {
 					"test_match_enabled":                 game.BaseContest.States.TestMatchEnabled,
 				},
 			},
-			"id":           game.ID,
-			"metadata":     game.Metadata,
-			"my_privilege": pri,
+			"id":       game.ID,
+			"metadata": game.Metadata,
 		}
 		gamesList = append(gamesList, gameData)
 	}

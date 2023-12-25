@@ -25,6 +25,14 @@ func SendBuildGameMsg(ctx context.Context, gameID uint) error {
 	})
 }
 
+func SendBuildContestMsg(ctx context.Context, contestID uint) error {
+	return sendMsg(ctx, &Msg{
+		Topic: "Build",
+		Body:  []byte(fmt.Sprintf("%d", contestID)),
+		Type:  "Contest",
+	})
+}
+
 func SendBuildSdkMsg(ctx context.Context, sdkID uint) error {
 	return sendMsg(ctx, &Msg{
 		Topic: "Build",
