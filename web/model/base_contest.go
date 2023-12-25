@@ -81,7 +81,7 @@ func (bc *BaseContest) Create(adminIDs []uint) error {
 	}
 	admins := make([]User, len(adminIDs))
 	for i, id := range adminIDs {
-		admins[i] = User{Model: gorm.Model{ID: id}}
+		admins[i] = User{Model: gorm.Model{ID: id}, Password: []byte{1}}
 	}
 	return db.Model(bc).Association("Admins").Append(admins)
 }

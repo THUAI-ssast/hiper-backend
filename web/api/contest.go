@@ -1,6 +1,7 @@
 package api
 
 import (
+	"hiper-backend/contest"
 	"hiper-backend/model"
 	"hiper-backend/mq"
 	"net/http"
@@ -116,15 +117,108 @@ func registerContest(c *gin.Context) {
 }
 
 func exitContest(c *gin.Context) {
+	inuserID := c.MustGet("userID").(int)
+	userID := uint(inuserID)
+	usr, err := model.GetUserByID(userID)
+	if err != nil {
+		c.JSON(401, gin.H{})
+		c.Abort()
+		return
+	}
+	gameIDtem := c.Param("id")
+	gameIDUint, _ := strconv.ParseUint(gameIDtem, 10, 32)
+	gameID := uint(gameIDUint)
 
+	contest, err := model.GetContestByID(gameID)
+	if err != nil {
+		c.JSON(422, gin.H{"error": ErrorFor422{
+			Code:   Invalid,
+			Field:  "game",
+			Detail: "game not found",
+		}})
+		c.Abort()
+		return
+	}
+	for i, user := range contest.RegisteredUsers {
+		if user.ID == usr.ID {
+			contest.RegisteredUsers = append(contest.RegisteredUsers[:i], contest.RegisteredUsers[i+1:]...)
+			break
+		}
+	}
+	// 更新 Contest
+	err = contest.Update(map[string]interface{}{
+		"RegisteredUsers": contest.RegisteredUsers,
+	})
+	if err != nil {
+		c.JSON(500, gin.H{"error": "failed to exit Contest"})
+		c.Abort()
+		return
+	}
+	c.JSON(200, gin.H{"id": contest.ID})
 }
 
 func getContestSettings(c *gin.Context) {
-
+	contest.RetContestSettings(c)
 }
 
 func updateContestPassword(c *gin.Context) {
+	inuserID := c.MustGet("userID").(int)
+	userID := uint(inuserID)
+	usr, err := model.GetUserByID(userID)
+	if err != nil {
+		c.JSON(401, gin.H{})
+		c.Abort()
+		return
+	}
+	gameIDtem := c.Param("id")
+	gameIDUint, _ := strconv.ParseUint(gameIDtem, 10, 32)
+	gameID := uint(gameIDUint)
 
+	var input struct {
+		Password string `json:"password"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.Abort()
+		return
+	}
+	contest, err := model.GetContestByID(gameID)
+	if err != nil {
+		c.JSON(422, gin.H{"error": ErrorFor422{
+			Code:   Invalid,
+			Field:  "game",
+			Detail: "game not found",
+		}})
+		c.Abort()
+		return
+	}
+	baseContest, err := model.GetBaseContestByID(gameID)
+	if err != nil {
+		c.JSON(422, gin.H{"error": ErrorFor422{
+			Code:   Invalid,
+			Field:  "game",
+			Detail: "game not found",
+		}})
+		c.Abort()
+		return
+	}
+	admin, _ := baseContest.IsAdmin(usr.ID)
+	if !admin {
+		c.JSON(401, gin.H{})
+		c.Abort()
+		return
+	}
+
+	// 更新 Contest
+	err = contest.Update(map[string]interface{}{
+		"Password": input.Password,
+	})
+	if err != nil {
+		c.JSON(500, gin.H{"error": "failed to update Contest password"})
+		c.Abort()
+		return
+	}
+	c.JSON(200, gin.H{"id": contest.ID})
 }
 
 func getContests(c *gin.Context) {
@@ -136,8 +230,6 @@ func getContests(c *gin.Context) {
 
 	var contestsList []gin.H
 	for _, contest := range contests {
-		userID := c.MustGet("userID").(int)
-		pri, err := contest.GetPrivilege(uint(userID))
 		if err != nil {
 			c.JSON(500, gin.H{})
 			return
@@ -155,9 +247,8 @@ func getContests(c *gin.Context) {
 					"test_match_enabled":                 contest.BaseContest.States.TestMatchEnabled,
 				},
 			},
-			"id":           contest.ID,
-			"metadata":     contest.Metadata,
-			"my_privilege": pri,
+			"id":       contest.ID,
+			"metadata": contest.Metadata,
 		}
 		contestsList = append(contestsList, contestData)
 	}

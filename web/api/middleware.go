@@ -103,7 +103,7 @@ func privilegeCheck() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		if privilege != true {
+		if !privilege {
 			c.JSON(401, gin.H{"error": "Unauthorized"})
 			c.Abort()
 			return
