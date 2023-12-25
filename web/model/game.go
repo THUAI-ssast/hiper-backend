@@ -107,22 +107,4 @@ func (g *Game) GetPrivilege(userID uint) (GamePrivilege, error) {
 	return GamePrivilegeRegistered, nil
 }
 
-// admin
-
-func (g *Game) AddAdmin(userID uint) error {
-	user := User{Model: gorm.Model{ID: userID}}
-	return db.Model(g).Association("Admins").Append(&user)
-}
-
-func (g *Game) GetAdmins() ([]User, error) {
-	var admins []User
-	err := db.Model(g).Association("Admins").Find(&admins)
-	return admins, err
-}
-
-func (g *Game) RemoveAdmin(userID uint) error {
-	user := User{Model: gorm.Model{ID: userID}}
-	return db.Model(g).Association("Admins").Delete(&user)
-}
-
 // TODO:game logic files
