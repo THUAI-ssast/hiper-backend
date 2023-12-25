@@ -9,7 +9,6 @@ type Game struct {
 	BaseContest BaseContest `gorm:"foreignKey:ID"`
 
 	Metadata Metadata `gorm:"embedded"`
-	Admins   []User   `gorm:"many2many:game_admins;"`
 
 	// game assets
 	GameLogic   GameLogic   `gorm:"embedded;embeddedPrefix:game_logic_"`
@@ -42,16 +41,12 @@ func (g *Game) Create(adminIDs []uint) error {
 			return err
 		}
 	} else {
-		if err := db.Create(&g.BaseContest).Error; err != nil {
+		if err := g.BaseContest.Create(adminIDs); err != nil {
 			return err
 		}
 	}
 	// create game
 	g.ID = g.BaseContest.ID
-	for _, id := range adminIDs {
-		user := User{Model: gorm.Model{ID: id}}
-		g.Admins = append(g.Admins, user)
-	}
 	if err := db.Create(g).Error; err != nil {
 		return err
 	}
@@ -102,7 +97,7 @@ func (g *Game) Delete() error {
 // Note: Game doesn't need registration
 func (g *Game) GetPrivilege(userID uint) (GamePrivilege, error) {
 	var count int64
-	err := db.Table("game_admins").Where("game_id = ? AND user_id = ?", g.ID, userID).Count(&count).Error
+	err := db.Table("base_contest_admins").Where("base_contest_id = ? AND user_id = ?", g.ID, userID).Count(&count).Error
 	if err != nil {
 		return "", err
 	}
@@ -110,24 +105,6 @@ func (g *Game) GetPrivilege(userID uint) (GamePrivilege, error) {
 		return GamePrivilegeAdmin, nil
 	}
 	return GamePrivilegeRegistered, nil
-}
-
-// admin
-
-func (g *Game) AddAdmin(userID uint) error {
-	user := User{Model: gorm.Model{ID: userID}}
-	return db.Model(g).Association("Admins").Append(&user)
-}
-
-func (g *Game) GetAdmins() ([]User, error) {
-	var admins []User
-	err := db.Model(g).Association("Admins").Find(&admins)
-	return admins, err
-}
-
-func (g *Game) RemoveAdmin(userID uint) error {
-	user := User{Model: gorm.Model{ID: userID}}
-	return db.Model(g).Association("Admins").Delete(&user)
 }
 
 // TODO:game logic files
