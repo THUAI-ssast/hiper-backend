@@ -467,13 +467,25 @@ func updateCurrentUser(c *gin.Context) {
 			return
 		}
 
-		updates := map[string]interface{}{
-			"avatar_url": input.Avatar_url,
-			"username":   input.Username,
-			"bio":        input.Bio,
-			"department": input.Department,
-			"name":       input.Name,
-			"school":     input.School,
+		updates := map[string]interface{}{}
+
+		if input.Avatar_url != "" {
+			updates["avatar_url"] = input.Avatar_url
+		}
+		if input.Username != "" {
+			updates["username"] = input.Username
+		}
+		if input.Bio != "" {
+			updates["bio"] = input.Bio
+		}
+		if input.Department != "" {
+			updates["department"] = input.Department
+		}
+		if input.Name != "" {
+			updates["name"] = input.Name
+		}
+		if input.School != "" {
+			updates["school"] = input.School
 		}
 
 		for key, value := range updates {
