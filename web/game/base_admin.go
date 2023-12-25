@@ -26,6 +26,14 @@ func RetGameSettings(c *gin.Context) {
 	ingameID := c.MustGet("gameID").(int)
 	gameID := uint(ingameID)
 	game, err := model.GetGameByID(gameID)
+	if err != nil {
+		c.JSON(422, gin.H{"error": ErrorFor422{
+			Code:  Invalid,
+			Field: "cannot find game",
+		}})
+		c.Abort()
+		return
+	}
 	baseContest, err := model.GetBaseContestByID(gameID)
 	if err != nil {
 		c.JSON(422, gin.H{"error": ErrorFor422{

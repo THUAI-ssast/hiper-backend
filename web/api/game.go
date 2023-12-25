@@ -3,6 +3,7 @@ package api
 import (
 	"hiper-backend/game"
 	"hiper-backend/model"
+	"hiper-backend/mq"
 	"net/http"
 	"strconv"
 
@@ -57,6 +58,7 @@ func createGame(c *gin.Context) {
 		c.Abort()
 		return
 	}
+	mq.SendBuildGameMsg(model.Ctx, tempGame.ID)
 	c.JSON(200, gin.H{"id": tempGame.ID})
 	c.Abort()
 }
@@ -124,8 +126,46 @@ func forkGame(c *gin.Context) {
 		c.Abort()
 		return
 	}
+	mq.SendBuildGameMsg(model.Ctx, tempGame.ID)
 	c.JSON(200, gin.H{"id": tempGame.ID})
 	c.Abort()
+}
+func getGames(c *gin.Context) {
+	games, err := model.GetGames()
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Internal Server Error"})
+		return
+	}
+
+	var gamesList []gin.H
+	for _, game := range games {
+		userID := c.MustGet("userID").(int)
+		pri, err := game.GetPrivilege(uint(userID))
+		if err != nil {
+			c.JSON(500, gin.H{})
+			return
+		}
+		gameData := gin.H{
+			"base_contest": gin.H{
+				"id":      game.ID,
+				"game_id": game.BaseContest.GameID,
+				"states": gin.H{
+					"assign_ai_enabled":                  game.BaseContest.States.AssignAiEnabled,
+					"commit_ai_enabled":                  game.BaseContest.States.CommitAiEnabled,
+					"contest_script_environment_enabled": game.BaseContest.States.ContestScriptEnvironmentEnabled,
+					"private_match_enabled":              game.BaseContest.States.PrivateMatchEnabled,
+					"public_match_enabled":               game.BaseContest.States.PublicMatchEnabled,
+					"test_match_enabled":                 game.BaseContest.States.TestMatchEnabled,
+				},
+			},
+			"id":           game.ID,
+			"metadata":     game.Metadata,
+			"my_privilege": pri,
+		}
+		gamesList = append(gamesList, gameData)
+	}
+
+	c.JSON(200, gamesList)
 }
 
 func getGameSettings(c *gin.Context) {
@@ -156,6 +196,7 @@ func updateGameLogic(c *gin.Context) {
 		c.Abort()
 		return
 	}
+	mq.SendChangeGameMsg(model.Ctx, gameID)
 	game.RetGameSettings(c)
 }
 

@@ -3,6 +3,7 @@ package api
 import (
 	"hiper-backend/game"
 	"hiper-backend/model"
+	"hiper-backend/mq"
 	"mime/multipart"
 	"net/http"
 	"strconv"
@@ -207,6 +208,7 @@ func addSdk(c *gin.Context) {
 	}
 	//saveSdkFile(sdk.ID,input.Sdk)
 	//TODO:往sdk中添加，存储文件至/var/hiper/sdks/sdks:id.xxx
+	mq.SendBuildSdkMsg(model.Ctx, sdk.ID)
 	c.JSON(200, gin.H{})
 	c.Abort()
 }
@@ -340,34 +342,6 @@ func updateGameStates(c *gin.Context) {
 	}
 	c.JSON(200, gin.H{})
 	c.Abort()
-}
-
-func getGames(c *gin.Context) {
-	games, err := model.GetGames()
-	if err != nil {
-		c.JSON(500, gin.H{"error": "Internal Server Error"})
-		return
-	}
-
-	var gamesList []gin.H
-	for _, game := range games {
-		userID := c.MustGet("userID").(int)
-		pri, err := game.GetPrivilege(uint(userID))
-		if err != nil {
-			c.JSON(500, gin.H{})
-			return
-		}
-		gameData := gin.H{
-			"id":           game.ID,
-			"game_id":      game.BaseContest.GameID,
-			"metadata":     game.Metadata,
-			"states":       game.BaseContest.States,
-			"my_privilege": pri,
-		}
-		gamesList = append(gamesList, gameData)
-	}
-
-	c.JSON(200, gamesList)
 }
 
 func getTheGame(c *gin.Context) {
@@ -506,7 +480,8 @@ func commitAi(c *gin.Context) {
 
 	// TODO: 上传文件、更新数据库
 	// update???
-
+	//TODO:以下的两个其实均为AIID，需要修改
+	mq.SendBuildAIMsg(model.Ctx, uint(gameID))
 	c.JSON(http.StatusOK, gin.H{"id": gameID})
 }
 

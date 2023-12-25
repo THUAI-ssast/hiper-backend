@@ -61,7 +61,15 @@ func ParseToken(tokenString string) (*MyClaims, error) {
 
 func loginVerify() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token := c.Request.Header["Authorization"][0]
+		// 检查 "Authorization" 头是否存在并且有值
+		authHeaders, exists := c.Request.Header["Authorization"]
+		if !exists || len(authHeaders) == 0 {
+			c.JSON(401, gin.H{"error": "Unauthorized"})
+			c.Abort()
+			return
+		}
+
+		token := authHeaders[0]
 		claims, _ := ParseToken(token[7:])
 		if claims == nil {
 			c.JSON(401, gin.H{"error": "Unauthorized"})

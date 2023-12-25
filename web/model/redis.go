@@ -8,17 +8,18 @@ import (
 	"github.com/spf13/viper"
 )
 
-var rdb *redis.Client
+var Rdb *redis.Client
+var Ctx = context.Background()
 
 // InitRedis initializes the redis connection
 func InitRedis() {
-	rdb = redis.NewClient(&redis.Options{
+	Rdb = redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%s:%s", viper.GetString("redis.host"), viper.GetString("redis.port")),
 		Password: viper.GetString("redis.password"),
 		DB:       viper.GetInt("redis.db"),
 	})
 
-	_, err := rdb.Ping(context.Background()).Result()
+	_, err := Rdb.Ping(context.Background()).Result()
 	if err != nil {
 		panic(err)
 	}
