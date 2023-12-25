@@ -26,6 +26,14 @@ func RetGameSettings(c *gin.Context) {
 	ingameID := c.MustGet("gameID").(int)
 	gameID := uint(ingameID)
 	game, err := model.GetGameByID(gameID)
+	if err != nil {
+		c.JSON(422, gin.H{"error": ErrorFor422{
+			Code:  Invalid,
+			Field: "cannot find game",
+		}})
+		c.Abort()
+		return
+	}
 	baseContest, err := model.GetBaseContestByID(gameID)
 	if err != nil {
 		c.JSON(422, gin.H{"error": ErrorFor422{
@@ -35,8 +43,9 @@ func RetGameSettings(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	admins := make([]map[string]interface{}, len(game.Admins))
-	for i, admin := range game.Admins {
+	adminGame, _ := baseContest.GetAdmins()
+	admins := make([]map[string]interface{}, len(adminGame))
+	for i, admin := range adminGame {
 		admins[i] = map[string]interface{}{
 			"avatar_url": admin.AvatarURL,
 			"nickname":   admin.Nickname,
@@ -74,26 +83,29 @@ func RetGameSettings(c *gin.Context) {
 		}
 	}
 	c.JSON(200, gin.H{
-		"game_id": game.ID,
+		"base_contest": map[string]interface{}{
+			"id":      game.ID,
+			"game_id": game.ID,
+			"states": map[string]interface{}{
+				"assign_ai_enabled":                  game.BaseContest.States.AssignAiEnabled,
+				"commit_ai_enabled":                  game.BaseContest.States.CommitAiEnabled,
+				"contest_script_environment_enabled": game.BaseContest.States.ContestScriptEnvironmentEnabled,
+				"private_match_enabled":              game.BaseContest.States.PrivateMatchEnabled,
+				"public_match_enabled":               game.BaseContest.States.PublicMatchEnabled,
+				"test_match_enabled":                 game.BaseContest.States.TestMatchEnabled,
+			},
+			"contest_assets": map[string]interface{}{
+				"contest_script": game.BaseContest.Script,
+				"sdks":           sdks,
+			},
+		},
+		"id": game.ID,
 		"metadata": map[string]interface{}{
 			"cover_url": game.Metadata.CoverUrl,
 			"readme":    game.Metadata.Readme,
 			"title":     game.Metadata.Title,
 		},
-		"states": map[string]interface{}{
-			"assign_ai_enabled":                  game.BaseContest.States.AssignAiEnabled,
-			"commit_ai_enabled":                  game.BaseContest.States.CommitAiEnabled,
-			"contest_script_environment_enabled": game.BaseContest.States.ContestScriptEnvironmentEnabled,
-			"private_match_enabled":              game.BaseContest.States.PrivateMatchEnabled,
-			"public_match_enabled":               game.BaseContest.States.PublicMatchEnabled,
-			"test_match_enabled":                 game.BaseContest.States.TestMatchEnabled,
-		},
-		"admins": admins,
-		"contest_assets": map[string]interface{}{
-			"contest_script": game.BaseContest.Script,
-			"sdks":           sdks,
-		},
-		"id":           game.ID,
+		"admins":       admins,
 		"my_privilege": "admin",
 		"game_assets": map[string]interface{}{
 			"game_logic": map[string]interface{}{

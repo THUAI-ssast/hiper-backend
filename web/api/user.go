@@ -434,6 +434,7 @@ func updateCurrentUser(c *gin.Context) {
 	} else {
 		var input struct {
 			Avatar_url string `json:"avatar_url"`
+			Nickname   string `json:"nickname"`
 			Bio        string `json:"bio"`
 			Department string `json:"department"`
 			Name       string `json:"name"`
@@ -467,13 +468,28 @@ func updateCurrentUser(c *gin.Context) {
 			return
 		}
 
-		updates := map[string]interface{}{
-			"avatar_url": input.Avatar_url,
-			"username":   input.Username,
-			"bio":        input.Bio,
-			"department": input.Department,
-			"name":       input.Name,
-			"school":     input.School,
+		updates := map[string]interface{}{}
+
+		if input.Avatar_url != "" {
+			updates["avatar_url"] = input.Avatar_url
+		}
+		if input.Username != "" {
+			updates["username"] = input.Username
+		}
+		if input.Nickname != "" {
+			updates["nickname"] = input.Nickname
+		}
+		if input.Bio != "" {
+			updates["bio"] = input.Bio
+		}
+		if input.Department != "" {
+			updates["department"] = input.Department
+		}
+		if input.Name != "" {
+			updates["name"] = input.Name
+		}
+		if input.School != "" {
+			updates["school"] = input.School
 		}
 
 		for key, value := range updates {
@@ -498,20 +514,7 @@ func updateCurrentUser(c *gin.Context) {
 				return
 			}
 		}
-		usr, _ := model.GetUserByID((uint)(userID))
-		c.JSON(200, gin.H{
-			"avatar_url": usr.AvatarURL,
-			"username":   usr.Username,
-			"bio":        usr.Bio,
-			"department": usr.Department,
-			"name":       usr.Name,
-			"permissions": gin.H{
-				"can_create_game_or_contest": usr.Permissions.CanCreateGameOrContest,
-			},
-			"school":              usr.School,
-			"contests_registered": "", //usr.ContestsRegistered,
-			"email":               usr.Email,
-		})
+		c.JSON(200, gin.H{})
 		c.Abort()
 	}
 }

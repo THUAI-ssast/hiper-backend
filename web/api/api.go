@@ -1,6 +1,8 @@
 package api
 
 import (
+	"time"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
@@ -10,11 +12,17 @@ import (
 func ApiListenHttp() {
 	r := gin.Default()
 
-	r.Use(cors.Default())
+	r.Use(cors.New(cors.Config{
+		AllowAllOrigins: true,
+		AllowMethods:    []string{"GET", "POST", "PUT", "DELETE", "PATCH"},
+		AllowHeaders:    []string{"Content-Type", "Access-Token", "Authorization"},
+		MaxAge:          6 * time.Hour,
+	}))
 
 	addUserRoutes(r)
 	addPermissionRoutes(r)
 	addGameRoutes(r)
+	addContestRoutes(r)
 	addBaseContestRoutes(r)
 	// TODO: add more routes
 
@@ -71,6 +79,7 @@ func addPermissionRoutes(r *gin.Engine) {
 func addGameRoutes(r *gin.Engine) {
 	v1 := r.Group("/api/v1")
 	{
+		v1.GET("/games", getGames)
 		//此后的路由都需要验证是否登录.在其内部，我们可以使用userID := c.MustGet("userID").(int)来获取当前登录用户的ID
 		auth := v1.Group("/", loginVerify())
 		{
@@ -87,13 +96,31 @@ func addGameRoutes(r *gin.Engine) {
 	}
 }
 
+func addContestRoutes(r *gin.Engine) {
+	v1 := r.Group("/api/v1")
+	{
+		v1.GET("/contests", getContests)
+		//此后的路由都需要验证是否登录.在其内部，我们可以使用userID := c.MustGet("userID").(int)来获取当前登录用户的ID
+		auth := v1.Group("/", loginVerify())
+		{
+			auth.POST("/contests", createContest)
+			auth.PUT("/contests/:id/register", registerContest)
+			auth.DELETE("/contests/:id/register", exitContest)
+			auth = auth.Group("/", privilegeCheck())
+			{
+				auth.GET("/contests/:id/settings", getContestSettings)
+				auth.PUT("/contests/:id/password", updateContestPassword)
+			}
+		}
+	}
+}
+
 func addBaseContestRoutes(r *gin.Engine) {
 	v1 := r.Group("/api/v1")
 	{
 		//此后的路由都需要验证是否登录.在其内部，我们可以使用userID := c.MustGet("userID").(int)来获取当前登录用户的ID
 		auth := v1.Group("/", loginVerify())
 		{
-			auth.GET("/games", getGames)
 			auth.GET("/games/:id", getTheGame)
 			auth.GET("/games/:id/ais", getAis)
 			auth.POST("/games/:id/ais", commitAi)
