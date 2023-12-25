@@ -123,11 +123,8 @@ func CallOnMatchFinished(matchID uint, replay string) error {
 		mutex.Unlock()
 	}
 
-	// 创建一个空的 players 数组
-	players := []model.Ai{}
-
 	// 调用 onMatchFinished 函数
-	_, err = CallJSFunction(vm, "onMatchFinished", players, match.Tag, replay)
+	_, err = CallJSFunction(vm, "onMatchFinished", match.Players, match.Tag, replay)
 	if err != nil {
 		return err
 	}
