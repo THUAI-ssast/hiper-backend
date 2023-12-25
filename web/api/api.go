@@ -1,6 +1,8 @@
 package api
 
 import (
+	"time"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
@@ -10,7 +12,12 @@ import (
 func ApiListenHttp() {
 	r := gin.Default()
 
-	r.Use(cors.Default())
+	r.Use(cors.New(cors.Config{
+		AllowAllOrigins: true,
+		AllowMethods:    []string{"GET", "POST", "PUT", "DELETE", "PATCH"},
+		AllowHeaders:    []string{"Content-Type", "Access-Token", "Authorization"},
+		MaxAge:          6 * time.Hour,
+	}))
 
 	addUserRoutes(r)
 	addPermissionRoutes(r)
