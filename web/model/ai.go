@@ -1,54 +1,85 @@
 package model
 
 import (
-	"errors"
-
 	"gorm.io/gorm"
 )
 
 type Ai struct {
 	gorm.Model
-	GameId uint `gorm:"index"`
-	// ContestId is 0 if the AI is in a game instead of any contest.
-	ContestId uint `gorm:"index"`
-	// Number is a unique identifier for each AI within a game or contest.
-	Number uint `gorm:"index"`
+	BaseContestID uint `gorm:"index"`
 
-	UserId uint `gorm:"index"`
-	User   User `gorm:"foreignKey:UserId"`
-	SdkId  uint
-	Sdk    Sdk `gorm:"foreignKey:SdkId"`
+	UserID uint `gorm:"index"`
+	User   User `gorm:"foreignKey:UserID"`
+	SdkID  uint
+	Sdk    Sdk `gorm:"foreignKey:SdkID"`
 
 	Note   string
 	Status TaskStatus `gorm:"embedded;embeddedPrefix:task_"`
+
+	// snapshot fields
+	GameID uint
 }
 
 func (a *Ai) BeforeCreate(tx *gorm.DB) (err error) {
-	// Fill GameId from ContestId
-	if a.ContestId != 0 && a.GameId == 0 {
-		var gameId uint
-		if err = tx.Model(&Contest{}).Select("game_id").First(&Contest{}, a.ContestId).Error; err != nil {
-			return err
-		}
-		a.GameId = gameId
+	// Fill GameID from BaseContestID
+	var bc BaseContest
+	if err = tx.Model(&BaseContest{}).Select("game_id").First(&bc, a.BaseContestID).Error; err != nil {
+		return err
 	}
-	// Fill Number
-	var maxNumber uint
-	if err = tx.Model(&Ai{}).Where("game_id = ? AND contest_id = ?", a.GameId, a.ContestId).Pluck("MAX(number)", &maxNumber).Error; err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return err
-		}
-		maxNumber = 0 // If no rows are found, set maxNumber to 0
-	}
-	a.Number = maxNumber + 1
+	a.GameID = bc.GameID
 	return nil
 }
 
-// TODO: add CRUD functions for ai
+// CRUD: Create
+
+func (a *Ai) Create() error {
+	return db.Create(a).Error
+}
 
 // CRUD: Read
 
-func GetAis(query QueryParams) ([]Ai, int64, error) {
-	// TODO: implement
-	return []Ai{}, 0, nil
+// If preload is true, the following fields will be preloaded:
+// Sdk.ID, Sdk.Name
+// User.AvatarURL, User.Nickname, User.Username
+func GetAis(query QueryParams, preload bool) (ais []Ai, count int64, err error) {
+	tx := db.Order("id DESC")
+	if preload {
+		tx = addPreloadsForAi(tx)
+	}
+	if query.Limit == 0 {
+		query.Limit = 20
+	}
+	count, err = paginate(tx, query, &ais)
+	return ais, count, nil
 }
+
+func GetAiByID(id uint, preload bool) (ai Ai, err error) {
+	tx := db.Where("id = ?", id)
+	if preload {
+		tx = addPreloadsForAi(tx)
+	}
+	err = tx.First(&ai).Error
+	return ai, err
+}
+
+func addPreloadsForAi(tx *gorm.DB) *gorm.DB {
+	return tx.Preload("Sdk", func(db *gorm.DB) *gorm.DB {
+		return db.Select("id", "name")
+	}).Preload("User", func(db *gorm.DB) *gorm.DB {
+		return db.Select("avatar_url", "nickname", "username")
+	})
+}
+
+// CRUD: Update
+
+func UpdateAiByID(id uint, updates map[string]interface{}) error {
+	return db.Model(&Ai{}).Where("id = ?", id).Updates(updates).Error
+}
+
+func (a *Ai) Update(updates map[string]interface{}) error {
+	return db.Model(a).Updates(updates).Error
+}
+
+// associations
+
+// ai file

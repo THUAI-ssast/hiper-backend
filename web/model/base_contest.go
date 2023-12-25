@@ -3,10 +3,22 @@ package model
 import "gorm.io/gorm"
 
 type BaseContest struct {
-	GameId   uint
-	Metadata Metadata      `gorm:"embedded"`
-	States   ContestStates `gorm:"embedded"`
-	Script   string
+	gorm.Model
+	GameID uint
+	States ContestStates `gorm:"embedded"`
+	Script string
+}
+
+// fields that selected when querying base contests
+var baseContestBaseFields = []string{
+	"id",
+	"game_id",
+	"assign_ai_enabled",
+	"commit_ai_enabled",
+	"contest_script_environment_enabled",
+	"private_match_enabled",
+	"public_match_enabled",
+	"test_match_enabled",
 }
 
 type Metadata struct {
@@ -57,4 +69,78 @@ func (ts *TaskStatus) BeforeSave(tx *gorm.DB) (err error) {
 type DockerTask struct {
 	Dockerfile string
 	Status     TaskStatus `gorm:"embedded"`
+}
+
+// CRUD: Read
+
+func GetBaseContestByID(id uint) (bc BaseContest, err error) {
+	err = db.First(&bc, id).Error
+	return
+}
+
+// CRUD: Update
+
+func UpdateBaseContestByID(id uint, updates map[string]interface{}) error {
+	return db.Model(&BaseContest{}).Where("id = ?", id).Updates(updates).Error
+}
+
+func (bc *BaseContest) Update(updates map[string]interface{}) error {
+	return db.Model(bc).Updates(updates).Error
+}
+
+// CRUD: Delete
+
+func DeleteBaseContestByID(id uint) error {
+	return db.Delete(&BaseContest{}, id).Error
+}
+
+func (bc *BaseContest) Delete() error {
+	return db.Delete(bc).Error
+}
+
+// Association CRUD
+
+// contestant
+
+// Sorted by points in descending order.
+// Currently supported preloads: "User", "AssignedAi"
+func (bc *BaseContest) GetContestants(preloads []preloadQuery) ([]Contestant, error) {
+	return GetContestants(map[string]interface{}{"base_contest_id": bc.ID}, preloads)
+}
+
+func (bc *BaseContest) GetContestantByUserID(userID uint, preloads []preloadQuery) (Contestant, error) {
+	return GetContestant(map[string]interface{}{"base_contest_id": bc.ID, "user_id": userID}, preloads)
+}
+
+func (bc *BaseContest) UpdateContestantByUserID(userID uint, updates map[string]interface{}) error {
+	return db.Model(&Contestant{}).Where("base_contest_id = ? AND user_id = ?", bc.ID, userID).Updates(updates).Error
+}
+
+func (bc *BaseContest) DeleteContestantByUserID(userID uint) error {
+	return db.Where("base_contest_id = ? AND user_id = ?", bc.ID, userID).Delete(&Contestant{}).Error
+}
+
+// ai
+
+func (bc *BaseContest) GetAis(query QueryParams, preload bool) ([]Ai, int64, error) {
+	query.Filter["base_contest_id"] = bc.ID
+	return GetAis(query, preload)
+}
+
+// match
+
+func (bc *BaseContest) GetMatches(query QueryParams, preload bool) ([]Match, int64, error) {
+	query.Filter["base_contest_id"] = bc.ID
+	return GetMatches(query, preload)
+}
+
+// sdk
+
+func (bc *BaseContest) GetSdks(fields ...string) (sdks []Sdk, err error) {
+	var tx *gorm.DB
+	if len(fields) > 0 {
+		tx = db.Select(fields)
+	}
+	err = tx.Where("base_contest_id = ?", bc.ID).Find(&sdks).Error
+	return
 }
