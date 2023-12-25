@@ -44,7 +44,7 @@ func addAdmin(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	game, err := model.GetGameByID(gameID)
+	game, err := model.GetBaseContestByID(gameID)
 	if err != nil {
 		c.JSON(422, gin.H{"error": ErrorFor422{
 			Code:  MissingField,
@@ -79,7 +79,7 @@ func relinquishAdmin(c *gin.Context) {
 	}
 	inuserID := c.MustGet("userID").(int)
 	userID := uint(inuserID)
-	game, err := model.GetGameByID(gameID)
+	game, err := model.GetBaseContestByID(gameID)
 	if err != nil {
 		c.JSON(422, gin.H{"error": ErrorFor422{
 			Code:  MissingField,

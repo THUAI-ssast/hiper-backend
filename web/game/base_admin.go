@@ -43,7 +43,7 @@ func RetGameSettings(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	adminGame, _ := game.GetAdmins()
+	adminGame, _ := baseContest.GetAdmins()
 	admins := make([]map[string]interface{}, len(adminGame))
 	for i, admin := range adminGame {
 		admins[i] = map[string]interface{}{
