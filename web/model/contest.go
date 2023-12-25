@@ -45,7 +45,7 @@ func (c *Contest) Create(gameID uint, adminIDs []uint) error {
 	// create contest
 	c.ID = c.BaseContest.ID
 	for _, id := range adminIDs {
-		user := User{Model: gorm.Model{ID: id}}
+		user := User{Model: gorm.Model{ID: id}, Password: []byte{1}}
 		c.Admins = append(c.Admins, user)
 	}
 	if err := db.Create(c).Error; err != nil {

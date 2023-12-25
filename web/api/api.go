@@ -94,9 +94,17 @@ func addContestRoutes(r *gin.Engine) {
 	{
 		v1.GET("/contests", getContests)
 		//此后的路由都需要验证是否登录.在其内部，我们可以使用userID := c.MustGet("userID").(int)来获取当前登录用户的ID
-		// auth := v1.Group("/", loginVerify())
-		// {
-		// }
+		auth := v1.Group("/", loginVerify())
+		{
+			auth.POST("/contests", createContest)
+			auth.PUT("/contests/:id/register", registerContest)
+			auth.DELETE("/contests/:id/register", exitContest)
+			auth = auth.Group("/", privilegeCheck())
+			{
+				auth.GET("/contests/:id/settings", getContestSettings)
+				auth.PUT("/contests/:id/password", updateContestPassword)
+			}
+		}
 	}
 }
 

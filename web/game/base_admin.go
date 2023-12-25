@@ -43,8 +43,9 @@ func RetGameSettings(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	admins := make([]map[string]interface{}, len(game.Admins))
-	for i, admin := range game.Admins {
+	adminGame, _ := game.GetAdmins()
+	admins := make([]map[string]interface{}, len(adminGame))
+	for i, admin := range adminGame {
 		admins[i] = map[string]interface{}{
 			"avatar_url": admin.AvatarURL,
 			"nickname":   admin.Nickname,

@@ -101,6 +101,7 @@ func ReturnWithUser(c *gin.Context, usr model.User, err error) {
 				"can_create_game_or_contest": usr.Permissions.CanCreateGameOrContest,
 			},
 			"school":              usr.School,
+			"nickname":            usr.Nickname,
 			"username":            usr.Username,
 			"email":               usr.Email,
 			"contests_registered": registered,

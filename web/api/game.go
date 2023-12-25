@@ -13,13 +13,13 @@ import (
 func createGame(c *gin.Context) {
 	inuserID := c.MustGet("userID").(int)
 	userID := uint(inuserID)
-	userr, err := model.GetUserByID(userID)
+	usr, err := model.GetUserByID(userID)
 	if err != nil {
 		c.JSON(401, gin.H{})
 		c.Abort()
 		return
 	}
-	if !userr.Permissions.CanCreateGameOrContest {
+	if !usr.Permissions.CanCreateGameOrContest {
 		c.JSON(403, gin.H{})
 		c.Abort()
 		return
