@@ -434,6 +434,7 @@ func updateCurrentUser(c *gin.Context) {
 	} else {
 		var input struct {
 			Avatar_url string `json:"avatar_url"`
+			Nickname   string `json:"nickname"`
 			Bio        string `json:"bio"`
 			Department string `json:"department"`
 			Name       string `json:"name"`
@@ -475,6 +476,9 @@ func updateCurrentUser(c *gin.Context) {
 		if input.Username != "" {
 			updates["username"] = input.Username
 		}
+		if input.Nickname != "" {
+			updates["nickname"] = input.Nickname
+		}
 		if input.Bio != "" {
 			updates["bio"] = input.Bio
 		}
@@ -510,20 +514,7 @@ func updateCurrentUser(c *gin.Context) {
 				return
 			}
 		}
-		usr, _ := model.GetUserByID((uint)(userID))
-		c.JSON(200, gin.H{
-			"avatar_url": usr.AvatarURL,
-			"username":   usr.Username,
-			"bio":        usr.Bio,
-			"department": usr.Department,
-			"name":       usr.Name,
-			"permissions": gin.H{
-				"can_create_game_or_contest": usr.Permissions.CanCreateGameOrContest,
-			},
-			"school":              usr.School,
-			"contests_registered": "", //usr.ContestsRegistered,
-			"email":               usr.Email,
-		})
+		c.JSON(200, gin.H{})
 		c.Abort()
 	}
 }
