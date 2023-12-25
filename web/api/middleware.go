@@ -97,13 +97,13 @@ func privilegeCheck() gin.HandlerFunc {
 			return
 		}
 		userID := uint(c.MustGet("userID").(int))
-		privilege, err := game.GetPrivilege(userID)
+		privilege, err := game.IsAdmin(userID)
 		if err != nil {
 			c.JSON(401, gin.H{"error": "Unauthorized"})
 			c.Abort()
 			return
 		}
-		if privilege != model.BaseContestPrivilegeAdmin {
+		if privilege != true {
 			c.JSON(401, gin.H{"error": "Unauthorized"})
 			c.Abort()
 			return

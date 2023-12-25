@@ -9,7 +9,6 @@ type Contest struct {
 	BaseContest BaseContest `gorm:"foreignKey:ID"`
 
 	Metadata Metadata `gorm:"embedded"`
-	Admins   []User   `gorm:"many2many:contest_admins;"`
 
 	Registration    Registration `gorm:"embedded"`
 	RegisteredUsers []User       `gorm:"many2many:contest_registrations;"`
@@ -38,16 +37,12 @@ func (c *Contest) Create(gameID uint, adminIDs []uint) error {
 		}
 	} else {
 		c.BaseContest.GameID = gameID
-		if err := db.Create(&c.BaseContest).Error; err != nil {
+		if err := c.BaseContest.Create(adminIDs); err != nil {
 			return err
 		}
 	}
 	// create contest
 	c.ID = c.BaseContest.ID
-	for _, id := range adminIDs {
-		user := User{Model: gorm.Model{ID: id}, Password: []byte{1}}
-		c.Admins = append(c.Admins, user)
-	}
 	if err := db.Create(c).Error; err != nil {
 		return err
 	}
@@ -97,7 +92,7 @@ func (c *Contest) Delete() error {
 func (c *Contest) GetPrivilege(userID uint) (ContestPrivilege, error) {
 	// check if the user is an admin
 	var count int64
-	if err := db.Table("contest_admins").Where("contest_id = ? AND user_id = ?", c.ID, userID).Count(&count).Error; err != nil {
+	if err := db.Table("base_contest_admins").Where("base_contest_id = ? AND user_id = ?", c.ID, userID).Count(&count).Error; err != nil {
 		return "", err
 	}
 	if count > 0 {

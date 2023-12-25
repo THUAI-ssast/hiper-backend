@@ -7,6 +7,8 @@ type BaseContest struct {
 	GameID uint
 	States ContestStates `gorm:"embedded"`
 	Script string
+
+	Admins []User `gorm:"many2many:base_contest_admins;"`
 }
 
 // fields that selected when querying base contests
@@ -71,6 +73,19 @@ type DockerTask struct {
 	Status     TaskStatus `gorm:"embedded"`
 }
 
+// CRUD: Create
+
+func (bc *BaseContest) Create(adminIDs []uint) error {
+	if err := db.Create(bc).Error; err != nil {
+		return err
+	}
+	admins := make([]User, len(adminIDs))
+	for i, id := range adminIDs {
+		admins[i] = User{Model: gorm.Model{ID: id}}
+	}
+	return db.Model(bc).Association("Admins").Append(admins)
+}
+
 // CRUD: Read
 
 func GetBaseContestByID(id uint) (bc BaseContest, err error) {
@@ -99,6 +114,32 @@ func (bc *BaseContest) Delete() error {
 }
 
 // Association CRUD
+
+// admin
+
+func (bc *BaseContest) IsAdmin(userID uint) (bool, error) {
+	var count int64
+	if err := db.Table("base_contest_admins").Where("base_contest_id = ? AND user_id = ?", bc.ID, userID).Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (bc *BaseContest) AddAdmin(userID uint) error {
+	user := User{Model: gorm.Model{ID: userID}}
+	return db.Model(bc).Association("Admins").Append(&user)
+}
+
+func (bc *BaseContest) GetAdmins() ([]User, error) {
+	var admins []User
+	err := db.Model(bc).Association("Admins").Find(&admins)
+	return admins, err
+}
+
+func (bc *BaseContest) RemoveAdmin(userID uint) error {
+	user := User{Model: gorm.Model{ID: userID}}
+	return db.Model(bc).Association("Admins").Delete(&user)
+}
 
 // contestant
 
