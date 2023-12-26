@@ -13,7 +13,6 @@ func SendBuildAIMsg(ctx context.Context, aiID uint) error {
 	})
 }
 
-// Game和contest都会这样发送
 func SendBuildGameLogicMsg(ctx context.Context, gameID uint) error {
 	return sendMsg(ctx, &Msg{
 		Topic: "Build",

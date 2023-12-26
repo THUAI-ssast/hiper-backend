@@ -3,6 +3,7 @@ package model
 import (
 	"context"
 	"fmt"
+	"hiper-backend/mq"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
@@ -23,4 +24,5 @@ func InitRedis() {
 	if err != nil {
 		panic(err)
 	}
+	go mq.ListenMsgForMatchFinished(mq.Ctx_callback, "match_finished")
 }
