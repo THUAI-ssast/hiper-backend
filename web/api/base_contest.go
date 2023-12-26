@@ -179,13 +179,13 @@ func addSdk(c *gin.Context) {
 	ingameID := c.MustGet("gameID").(int)
 	gameID := uint(ingameID)
 	var input struct {
-		Name              string                `json:"name"`
-		Description       string                `json:"description"`
-		Sdk               *multipart.FileHeader `json:"sdk"`
-		BuildAiDockerfile string                `json:"build_ai_dockerfile"`
-		RunAiDockerfile   string                `json:"run_ai_dockerfile"`
+		Name              string                `form:"name"`
+		Description       string                `form:"description"`
+		Sdk               *multipart.FileHeader `form:"sdk"`
+		BuildAiDockerfile string                `form:"build_ai_dockerfile"`
+		RunAiDockerfile   string                `form:"run_ai_dockerfile"`
 	}
-	if err := c.ShouldBindJSON(&input); err != nil {
+	if err := c.ShouldBind(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		c.Abort()
 		return
