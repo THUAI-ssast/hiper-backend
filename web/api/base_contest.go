@@ -408,23 +408,10 @@ func getTheGame(c *gin.Context) {
 			Columns: []string{},
 		},
 	}
-	contestants, err := baseContest.GetContestants(preloads)
+	contestant, err := model.GetContestant(map[string]interface{}{"user_id": userID, "base_contest_id": baseContest.ID}, preloads)
 	if err != nil {
-		c.JSON(404, gin.H{})
+		c.JSON(500, gin.H{})
 		return
-	}
-
-	var my model.Contestant
-	found := false
-	for _, contestant := range contestants {
-		if contestant.UserID == uint(userID) {
-			my = contestant
-			found = true
-			break
-		}
-	}
-	if !found {
-		my = model.Contestant{}
 	}
 
 	game, err := model.GetGameByID(baseContest.GameID)
@@ -439,7 +426,7 @@ func getTheGame(c *gin.Context) {
 			"id":      baseContest.ID,
 			"game_id": baseContest.GameID,
 			"states":  baseContest.States,
-			"my":      basecontest.ConvertStruct(my),
+			"my":      basecontest.ConvertStruct(contestant),
 		},
 		"id":           baseContest.ID,
 		"my_privilege": pri,
@@ -749,8 +736,7 @@ func editAiNote(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-	})
+	c.JSON(http.StatusOK, gin.H{})
 }
 
 func getContestants(c *gin.Context) {
@@ -832,10 +818,6 @@ func assignAi(c *gin.Context) {
 			Table:   "AssignedAi",
 			Columns: []string{},
 		},
-		{
-			Table:   "Contestant",
-			Columns: []string{},
-		},
 	}
 	userID := c.MustGet("userID").(int)
 	contestant, err := baseContest.GetContestantByUserID(uint(userID), preloads)
@@ -853,13 +835,6 @@ func assignAi(c *gin.Context) {
 		return
 	}
 	ai_id := input.AIID
-	ai, err := model.GetAiByID(uint(ai_id), true)
-	if err != nil {
-		c.JSON(400, gin.H{"error": "AI not found"})
-		return
-	}
-
-	contestant.AssignedAi = ai
 	contestant.AssignedAiID = uint(ai_id)
 
 	model.UpdateContestantByID(contestant.ID, map[string]interface{}{
@@ -946,7 +921,6 @@ func revokeAssignedAi(c *gin.Context) {
 }
 
 func getMatches(c *gin.Context) {
-	username := c.Query("username")
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
 	offset, _ := strconv.Atoi(c.Query("offset"))
 
@@ -954,9 +928,6 @@ func getMatches(c *gin.Context) {
 		Filter: map[string]interface{}{},
 		Offset: offset,
 		Limit:  limit,
-	}
-	if username != "" {
-		queryParams.Filter["username"] = username
 	}
 
 	id, err := strconv.Atoi(c.Param("id"))
@@ -976,19 +947,19 @@ func getMatches(c *gin.Context) {
 		return
 	}
 
-	var matchList []gin.H
+	var matchList []map[string]interface{}
 	for _, match := range matches {
-		matchData := gin.H{
+		matchData := map[string]interface{}{
 			"id":      match.ID,
 			"tag":     match.Tag,
 			"players": match.Players,
 			"state":   match.State,
-			"time":    match.CreatedAt, // 可能代表创建时间
+			"time":    match.CreatedAt,
 		}
 		matchList = append(matchList, matchData)
 	}
 
-	response := gin.H{
+	response := map[string]interface{}{
 		"count": count,
 		"data":  matchList,
 	}
@@ -996,52 +967,17 @@ func getMatches(c *gin.Context) {
 }
 
 func getMatch(c *gin.Context) {
-	username := c.Query("username")
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-	offset, _ := strconv.Atoi(c.Query("offset"))
+	inmatchID := c.Param("match_id")
+	matchID, _ := strconv.Atoi(inmatchID)
 
-	queryParams := model.QueryParams{
-		Filter: map[string]interface{}{},
-		Offset: offset,
-		Limit:  limit,
-	}
-	if username != "" {
-		queryParams.Filter["username"] = username
-	}
-
-	id, err := strconv.Atoi(c.Param("id"))
+	aimMatch, err := model.GetMatchByID(uint(matchID), true)
 	if err != nil {
-		c.JSON(400, gin.H{})
+		c.JSON(400, gin.H{"error": "Match not found"})
 		return
-	}
-	baseContest, err := model.GetBaseContestByID(uint(id))
-	if err != nil {
-		c.JSON(404, gin.H{})
-		return
-	}
-
-	matches, _, err := baseContest.GetMatches(queryParams, true)
-	if err != nil {
-		c.JSON(404, gin.H{})
-		return
-	}
-
-	match_id, err := strconv.Atoi(c.Param("match_id"))
-	if err != nil {
-		c.JSON(404, gin.H{})
-		return
-	}
-
-	var aimMatch model.Match
-	for _, match := range matches {
-		if match.ID == uint(match_id) {
-			aimMatch = match
-			break
-		}
 	}
 
 	// Construct the base path for the replay file
-	replayFilePath := fmt.Sprintf("/var/hiper/matches/%d/replay.json", match_id)
+	replayFilePath := fmt.Sprintf("/var/hiper/matches/%d/replay.json", matchID)
 	fileDir := "/var/hiper/matches/"
 	var fileName string
 
@@ -1059,25 +995,19 @@ func getMatch(c *gin.Context) {
 		return nil
 	})
 
+	var fileContent string
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error searching for file"})
-		return
+		// Read the file content
+		fileContentBytes, err := os.ReadFile(fileName)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read AI file"})
+			return
+		}
+		// Convert file content to string
+		fileContent = string(fileContentBytes)
+	} else {
+		fileContent = ""
 	}
-
-	if fileName == "" {
-		c.JSON(http.StatusNotFound, gin.H{"error": "AI file not found"})
-		return
-	}
-
-	// Read the file content
-	fileContentBytes, err := os.ReadFile(fileName)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read AI file"})
-		return
-	}
-
-	// Convert file content to string
-	fileContent := string(fileContentBytes)
 
 	c.JSON(200, gin.H{
 		"id":      aimMatch.ID,

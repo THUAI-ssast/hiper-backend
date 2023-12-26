@@ -121,19 +121,19 @@ func addBaseContestRoutes(r *gin.Engine) {
 		//此后的路由都需要验证是否登录.在其内部，我们可以使用userID := c.MustGet("userID").(int)来获取当前登录用户的ID
 		auth := v1.Group("/", loginVerify())
 		{
-			auth.GET("/games/:id", getTheGame)//no
-			auth.GET("/games/:id/ais", getAis)//ok
-			auth.POST("/games/:id/ais", commitAi)//no
-			auth.GET("/games/:id/ais/:ai_id", getTheAI)//ok
-			auth.GET("/games/:id/ais/:ai_id/file", downloadTheAI)//pending
-			auth.PUT("/games/:id/ais/:ai_id/note", editAiNote)//ok
-			auth.GET("/games/:id/contestants", getContestants)//no
-			auth.PUT("/games/:id/contestant/assigned_ai", assignAi)//no
-			auth.GET("/games/:id/contestant", getCurrentContestant)//ok
-			auth.DELETE("/games/:id/contestant/assigned_ai", revokeAssignedAi)//pending
-			auth.GET("/games/:id/matches", getMatches)//no
-			auth.GET("/games/:id/matches/:match_id", getMatch)//no
-			auth.GET("/games/:id/sdks", getSdks)//ok
+			auth.GET("/games/:id", getTheGame)                                 //ok
+			auth.GET("/games/:id/ais", getAis)                                 //ok
+			auth.POST("/games/:id/ais", commitAi)                              //no
+			auth.GET("/games/:id/ais/:ai_id", getTheAI)                        //ok
+			auth.GET("/games/:id/ais/:ai_id/file", downloadTheAI)              //pending
+			auth.PUT("/games/:id/ais/:ai_id/note", editAiNote)                 //ok
+			auth.GET("/games/:id/contestants", getContestants)                 //ok
+			auth.PUT("/games/:id/contestant/assigned_ai", assignAi)            //ok
+			auth.GET("/games/:id/contestant", getCurrentContestant)            //ok
+			auth.DELETE("/games/:id/contestant/assigned_ai", revokeAssignedAi) //pending
+			auth.GET("/games/:id/matches", getMatches)                         //ok
+			auth.GET("/games/:id/matches/:match_id", getMatch)                 //ok
+			auth.GET("/games/:id/sdks", getSdks)                               //ok
 			//此后的路由都需要验证是否是管理员.在其内部，我们可以使用gameID := c.MustGet("gameID").(int)来获取当前游戏的ID
 			auth = auth.Group("/", privilegeCheck())
 			{
