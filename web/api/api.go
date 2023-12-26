@@ -123,7 +123,7 @@ func addBaseContestRoutes(r *gin.Engine) {
 		{
 			auth.GET("/games/:id", getTheGame)                                 //ok
 			auth.GET("/games/:id/ais", getAis)                                 //ok
-			auth.POST("/games/:id/ais", commitAi)                              //no
+			auth.POST("/games/:id/ais", commitAi)                              //ok
 			auth.GET("/games/:id/ais/:ai_id", getTheAI)                        //ok
 			auth.GET("/games/:id/ais/:ai_id/file", downloadTheAI)              //pending
 			auth.PUT("/games/:id/ais/:ai_id/note", editAiNote)                 //ok
