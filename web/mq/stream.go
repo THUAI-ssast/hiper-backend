@@ -20,16 +20,6 @@ func sendMsg(ctx context.Context, msg *Msg) error {
 	}).Err()
 }
 
-func SendByteMsg(ctx context.Context, topic string, body []byte, Type string) error {
-	return model.Rdb.XAdd(ctx, &redis.XAddArgs{
-		Stream: topic,
-		MaxLen: 0,
-		Approx: false,
-		ID:     "*",
-		Values: []interface{}{"body", body, "type", Type},
-	}).Err()
-}
-
 func ListenMsgForMatchFinished(ctx context.Context, topic string) (err error) {
 	rdb := model.Rdb
 
@@ -75,15 +65,4 @@ func ListenMsgForMatchFinished(ctx context.Context, topic string) (err error) {
 			}
 		}
 	}
-}
-
-func InitMq() {
-	go ListenMsgForMatchFinished(Ctx_callback, "match_finished")
-}
-
-func InitGameMq(baseContestID uint) {
-	SetCreateMatch(baseContestID)
-	SetGetContestantsByRanking(baseContestID)
-	SetUpdateContestant(baseContestID)
-	SendBuildGameLogicMsg(Ctx_callback, baseContestID)
 }
