@@ -184,7 +184,7 @@ func updateGameLogic(c *gin.Context) {
 	}
 
 	// 保存上传的文件
-	filePath := fmt.Sprintf("/var/hiper/gamelogic/game%dlogic.zip", gameID)
+	filePath := fmt.Sprintf("/var/hiper/games/%d/game_logic/gamelogic.zip", gameID)
 	if err := c.SaveUploadedFile(input.GameLogicFile, filePath); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		c.Abort()

@@ -32,7 +32,6 @@ func CreateRuntimeWithJSFile(baseContestID uint) error {
 	return nil
 }
 
-// TODO: 在aiassign api中调用
 func CallOnAIAssigned(contestant model.Contestant) error {
 	baseContestID := contestant.BaseContestID
 

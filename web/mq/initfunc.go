@@ -19,7 +19,7 @@ var (
 )
 
 func InitMq() {
-	go ListenMsgForMatchFinished(Ctx_callback, "match_finished")
+	go ListenMsgForMatchFinished(Ctx_callback, "match_result")
 }
 
 func InitGameMq(baseContestID uint) {

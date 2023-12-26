@@ -16,7 +16,7 @@ func getContestantsByRanking(filter string, baseContestID uint) (contestants []m
 			Columns: []string{},
 		},
 		{
-			Table:   "Ai",
+			Table:   "AssignedAi",
 			Columns: []string{},
 		},
 	}

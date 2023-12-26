@@ -2,10 +2,10 @@ package api
 
 import (
 	"fmt"
+	"hiper-backend/basecontest"
 	"hiper-backend/game"
 	"hiper-backend/model"
 	"hiper-backend/mq"
-	"io/ioutil"
 	"mime"
 	"mime/multipart"
 	"net/http"
@@ -212,8 +212,19 @@ func addSdk(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	//saveSdkFile(sdk.ID,input.Sdk)
-	//TODO:往sdk中添加，存储文件至/var/hiper/sdks/sdks:id.xxx
+
+	// 获取文件的扩展名
+	fileExt := filepath.Ext(input.Sdk.Filename)
+
+	// 使用文件的扩展名构造文件路径
+	filePath := fmt.Sprintf("/var/hiper/sdks/%d/src%s", sdk.ID, fileExt)
+
+	if err := c.SaveUploadedFile(input.Sdk, filePath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.Abort()
+		return
+	}
+
 	mq.SendBuildSdkMsg(model.Ctx, sdk.ID)
 	c.JSON(200, gin.H{})
 	c.Abort()
@@ -270,13 +281,13 @@ func updateSdk(c *gin.Context) {
 		return
 	}
 	var input struct {
-		Name              string                `json:"name"`
-		Readme            string                `json:"readme"`
-		Sdk               *multipart.FileHeader `json:"sdk"`
-		BuildAiDockerfile string                `json:"build_ai_dockerfile"`
-		RunAiDockerfile   string                `json:"run_ai_dockerfile"`
+		Name              string                `form:"name"`
+		Readme            string                `form:"readme"`
+		Sdk               *multipart.FileHeader `form:"sdk"`
+		BuildAiDockerfile string                `form:"build_ai_dockerfile"`
+		RunAiDockerfile   string                `form:"run_ai_dockerfile"`
 	}
-	if err := c.ShouldBindJSON(&input); err != nil {
+	if err := c.ShouldBind(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		c.Abort()
 		return
@@ -295,8 +306,17 @@ func updateSdk(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	//saveSdkFile(sdk.ID,input.Sdk)
-	//TODO:往sdk中添加，存储文件至/var/hiper/sdks/sdks:id.xxx
+	// 获取文件的扩展名
+	fileExt := filepath.Ext(input.Sdk.Filename)
+
+	// 使用文件的扩展名构造文件路径
+	filePath := fmt.Sprintf("/var/hiper/sdks/%d/src%s", sdk.ID, fileExt)
+
+	if err := c.SaveUploadedFile(input.Sdk, filePath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.Abort()
+		return
+	}
 	c.JSON(200, gin.H{})
 	c.Abort()
 }
@@ -384,7 +404,7 @@ func getTheGame(c *gin.Context) {
 			Columns: []string{},
 		},
 		{
-			Table:   "Ai",
+			Table:   "AssignedAi",
 			Columns: []string{},
 		},
 	}
@@ -407,14 +427,10 @@ func getTheGame(c *gin.Context) {
 		my = model.Contestant{}
 	}
 
-	var input struct {
-		CoverURL string `json:"cover_url"`
-		Readme   string `json:"readme"`
-		Title    string `json:"title"`
-	}
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		c.Abort()
+	game, err := model.GetGameByID(baseContest.GameID)
+
+	if err != nil {
+		c.JSON(404, gin.H{})
 		return
 	}
 
@@ -423,14 +439,14 @@ func getTheGame(c *gin.Context) {
 			"id":      baseContest.ID,
 			"game_id": baseContest.GameID,
 			"states":  baseContest.States,
-			"my":      my,
+			"my":      basecontest.ConvertStruct(my),
 		},
 		"id":           baseContest.ID,
 		"my_privilege": pri,
 		"metadata": map[string]interface{}{
-			"cover_url": input.CoverURL,
-			"readme":    input.Readme,
-			"title":     input.Title,
+			"cover_url": game.Metadata.CoverUrl,
+			"readme":    game.Metadata.Readme,
+			"title":     game.Metadata.Title,
 		},
 	})
 }
@@ -463,7 +479,7 @@ func getAis(c *gin.Context) {
 			"note":   ai.Note,
 			"status": ai.Status,
 			"user":   ai.User,
-			"time":   ai.CreatedAt, // TODO: 可能代表创建时间
+			"time":   ai.CreatedAt,
 		}
 		aiList = append(aiList, aiData)
 	}
@@ -503,6 +519,18 @@ func commitAi(c *gin.Context) {
 	}
 
 	file, err := c.FormFile("ai")
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"errors": []map[string]interface{}{
+				{
+					"code":   "missing_field",
+					"field":  "ai",
+					"detail": "AI file is required",
+				},
+			},
+		})
+		return
+	}
 	_, err = c.FormFile("ai")
 	if err != nil {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{
@@ -549,7 +577,6 @@ func commitAi(c *gin.Context) {
 		"sdk_id": sdkID,
 	})
 
-	// TODO:添加到/var/hiper/ais/ais:id
 	// Open the uploaded file
 	openedFile, err := file.Open()
 	if err != nil {
@@ -585,7 +612,7 @@ func commitAi(c *gin.Context) {
 	extension := exts[0]
 
 	// Construct file path
-	aiFilePath := fmt.Sprintf("/var/hiper/ais/ais:%d%s", ai.ID, extension)
+	aiFilePath := fmt.Sprintf("/var/hiper/ais/%d/src%s", ai.ID, extension)
 
 	// Save the file
 	if err := c.SaveUploadedFile(file, aiFilePath); err != nil {
@@ -652,7 +679,7 @@ func downloadTheAI(c *gin.Context) {
 	}
 
 	// Construct the base path for the AI file
-	aiFilePath := fmt.Sprintf("/var/hiper/ais/ais:%d", ai_id)
+	aiFilePath := fmt.Sprintf("/var/hiper/ais/%d/src", ai_id)
 	fileDir := "/var/hiper/ais/"
 	var fileName string
 
@@ -681,7 +708,7 @@ func downloadTheAI(c *gin.Context) {
 	}
 
 	// Read the file content
-	fileContent, err := ioutil.ReadFile(fileName)
+	fileContent, err := os.ReadFile(fileName)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read AI file"})
 		return
@@ -746,7 +773,7 @@ func getContestants(c *gin.Context) {
 			Columns: []string{},
 		},
 		{
-			Table:   "Ai",
+			Table:   "AssignedAi",
 			Columns: []string{},
 		},
 	}
@@ -803,7 +830,7 @@ func assignAi(c *gin.Context) {
 			Columns: []string{},
 		},
 		{
-			Table:   "Ai",
+			Table:   "AssignedAi",
 			Columns: []string{},
 		},
 		{
@@ -836,22 +863,15 @@ func assignAi(c *gin.Context) {
 	contestant.AssignedAi = ai
 	contestant.AssignedAiID = uint(ai_id)
 
+	model.UpdateContestantByID(contestant.ID, map[string]interface{}{
+		"assigned_ai_id": uint(ai_id),
+	})
+
 	c.JSON(200, gin.H{})
+	mq.CallOnAIAssigned(contestant)
 }
 
 func getCurrentContestant(c *gin.Context) {
-	// id, err := strconv.Atoi(c.Param("id"))
-	// if err != nil {
-	// 	c.JSON(400, gin.H{})
-	// 	return
-	// }
-
-	// baseContest, err := model.GetBaseContestByID(uint(id))
-	// if err != nil {
-	// 	c.JSON(404, gin.H{})
-	// 	return
-	// }
-
 	contestantIDs, _ := c.Get("contestantID") //
 	contestantID, _ := contestantIDs.(int)
 	preloads := []model.PreloadQuery{
@@ -860,7 +880,7 @@ func getCurrentContestant(c *gin.Context) {
 			Columns: []string{},
 		},
 		{
-			Table:   "Ai",
+			Table:   "AssignedAi",
 			Columns: []string{},
 		},
 		{
@@ -869,6 +889,10 @@ func getCurrentContestant(c *gin.Context) {
 		},
 	}
 	contestant, err := model.GetContestantByID((uint)(contestantID), preloads)
+	if err != nil {
+		c.JSON(400, gin.H{})
+		return
+	}
 
 	aiid := contestant.AssignedAiID
 	ai, err := model.GetAiByID(uint(aiid), true)
@@ -902,7 +926,7 @@ func revokeAssignedAi(c *gin.Context) {
 			Columns: []string{},
 		},
 		{
-			Table:   "Ai",
+			Table:   "AssignedAi",
 			Columns: []string{},
 		},
 		{
@@ -1017,13 +1041,52 @@ func getMatch(c *gin.Context) {
 		}
 	}
 
+	// Construct the base path for the replay file
+	replayFilePath := fmt.Sprintf("/var/hiper/matches/%d/replay.json", match_id)
+	fileDir := "/var/hiper/matches/"
+	var fileName string
+
+	// Search for the file with the correct ai_id and extension
+	err = filepath.Walk(fileDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if strings.HasPrefix(info.Name(), replayFilePath) {
+			fileName = path
+			return nil
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error searching for file"})
+		return
+	}
+
+	if fileName == "" {
+		c.JSON(http.StatusNotFound, gin.H{"error": "AI file not found"})
+		return
+	}
+
+	// Read the file content
+	fileContentBytes, err := os.ReadFile(fileName)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read AI file"})
+		return
+	}
+
+	// Convert file content to string
+	fileContent := string(fileContentBytes)
+
 	c.JSON(200, gin.H{
 		"id":      aimMatch.ID,
 		"tag":     aimMatch.Tag,
 		"state":   aimMatch.State,
 		"time":    aimMatch.CreatedAt,
 		"players": aimMatch.Players,
-		"replay":  "", // TODO
+		"replay":  fileContent,
 	})
 }
 
