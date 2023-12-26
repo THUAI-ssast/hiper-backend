@@ -414,11 +414,11 @@ func getTheGame(c *gin.Context) {
 		return
 	}
 
-	var my model.Contestant
+	my := model.Contestant{}
 	found := false
 	for _, contestant := range contestants {
 		if contestant.UserID == uint(userID) {
-			my = contestant
+			my = contestant // TODO
 			found = true
 			break
 		}
@@ -568,9 +568,9 @@ func commitAi(c *gin.Context) {
 		return
 	}
 
-	var ai *model.Ai
-	ai.Create()
+	ai := model.Ai{}
 	ai.BaseContestID = uint(gameID)
+	ai.Create()
 
 	model.UpdateAiByID(ai.ID, map[string]interface{}{
 		"note":   note,
@@ -623,7 +623,6 @@ func commitAi(c *gin.Context) {
 		return
 	}
 
-	//以下的两个其实均为AIID，需要修改
 	mq.SendBuildAIMsg(model.Ctx, uint(ai.ID))
 	c.JSON(http.StatusOK, gin.H{"id": ai.ID})
 }
@@ -749,8 +748,7 @@ func editAiNote(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-	})
+	c.JSON(http.StatusOK, gin.H{})
 }
 
 func getContestants(c *gin.Context) {
@@ -782,7 +780,7 @@ func getContestants(c *gin.Context) {
 		return
 	}
 
-	var contestantList []gin.H
+	contestantList := []gin.H{}
 	for _, contestant := range contestants {
 		userid := contestant.UserID
 		user, err := model.GetUserByID(uint(userid))
