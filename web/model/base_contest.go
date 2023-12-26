@@ -178,7 +178,7 @@ func (bc *BaseContest) GetMatches(query QueryParams, preload bool) ([]Match, int
 // sdk
 
 func (bc *BaseContest) GetSdks(fields ...string) (sdks []Sdk, err error) {
-	var tx *gorm.DB
+	tx := db
 	if len(fields) > 0 {
 		tx = db.Select(fields)
 	}
