@@ -71,19 +71,19 @@ func updateContestant(contestantjs interface{}, body map[string]interface{}, bas
 	}
 
 	// 获取 body 中的字段
-	performance, ok := body["Performance"]
+	performance, ok := body["performance"]
 	if ok {
 		contestant.Performance = performance.(string)
 	}
-	assignAiEnabled, ok := body["AssignAiEnabled"]
+	assignAiEnabled, ok := body["assignAiEnabled"]
 	if ok {
 		contestant.Permissions.AssignAiEnabled = assignAiEnabled.(bool)
 	}
-	publicMatchEnabled, ok := body["PublicMatchEnabled"]
+	publicMatchEnabled, ok := body["publicMatchEnabled"]
 	if ok {
 		contestant.Permissions.PublicMatchEnabled = publicMatchEnabled.(bool)
 	}
-	points, ok := body["Points"]
+	points, ok := body["points"]
 	if ok {
 		contestant.Points = points.(int)
 	}
