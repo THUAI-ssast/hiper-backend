@@ -41,6 +41,9 @@ func GetContestants(filter map[string]interface{}, preloads []PreloadQuery) ([]C
 
 func GetContestant(condition map[string]interface{}, preloads []PreloadQuery) (Contestant, error) {
 	contestants, err := GetContestants(condition, preloads)
+	if len(contestants) == 0 {
+		return Contestant{}, err
+	}
 	return contestants[0], err
 }
 
