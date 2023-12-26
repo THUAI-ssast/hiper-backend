@@ -378,7 +378,7 @@ func getTheGame(c *gin.Context) {
 	}
 	baseContest, err := model.GetBaseContestByID(uint(id))
 	if err != nil {
-		c.JSON(404, gin.H{"error": "Game not found"})
+		c.JSON(400, gin.H{"error": "Game not found"})
 		return
 	}
 
@@ -750,7 +750,6 @@ func editAiNote(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "AI note updated successfully",
 	})
 }
 
@@ -779,7 +778,7 @@ func getContestants(c *gin.Context) {
 	}
 	contestants, err := baseContest.GetContestants(preloads)
 	if err != nil {
-		c.JSON(404, gin.H{})
+		c.JSON(400, gin.H{})
 		return
 	}
 
@@ -820,7 +819,7 @@ func assignAi(c *gin.Context) {
 	}
 	baseContest, err := model.GetBaseContestByID(uint(id))
 	if err != nil {
-		c.JSON(404, gin.H{})
+		c.JSON(400, gin.H{})
 		return
 	}
 
@@ -841,7 +840,7 @@ func assignAi(c *gin.Context) {
 	userID := c.MustGet("userID").(int)
 	contestant, err := baseContest.GetContestantByUserID(uint(userID), preloads)
 	if err != nil {
-		c.JSON(404, gin.H{})
+		c.JSON(400, gin.H{})
 		return
 	}
 
@@ -856,7 +855,7 @@ func assignAi(c *gin.Context) {
 	ai_id := input.AIID
 	ai, err := model.GetAiByID(uint(ai_id), true)
 	if err != nil {
-		c.JSON(404, gin.H{"error": "AI not found"})
+		c.JSON(400, gin.H{"error": "AI not found"})
 		return
 	}
 
