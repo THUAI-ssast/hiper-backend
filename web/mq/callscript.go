@@ -231,3 +231,35 @@ func GetContestantsByRanking(baseContestID uint) error {
 
 	return nil
 }
+
+func UpdateContestant(baseContestID uint) error {
+	err := SetGoFuncForJS(baseContestID, "updateContestant", func(call goja.FunctionCall) goja.Value {
+		// 获取 contestant 参数
+		contestantVal := call.Argument(0)
+		contestant, ok := contestantVal.Export().(map[string]interface{})
+		if !ok {
+			panic("contestant must be an object")
+		}
+
+		// 获取 body 参数
+		bodyVal := call.Argument(1)
+		body, ok := bodyVal.Export().(map[string]interface{})
+		if !ok {
+			panic("body must be an object")
+		}
+
+		// 调用 updateContestant 函数
+		err := updateContestant(contestant, body, baseContestID)
+		if err != nil {
+			panic(err)
+		}
+
+		// 返回 undefined
+		return goja.Undefined()
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

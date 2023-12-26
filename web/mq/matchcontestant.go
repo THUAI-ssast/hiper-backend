@@ -2,6 +2,7 @@ package mq
 
 import (
 	"hiper-backend/model"
+	"sort"
 )
 
 func getContestantsByRanking(filter string, baseContestID uint) (contestants []model.Contestant, err error) {
@@ -20,7 +21,28 @@ func getContestantsByRanking(filter string, baseContestID uint) (contestants []m
 		},
 	}
 	contestants, err = baseContest.GetContestants(preloads)
-	return contestants, err
+	sort.Slice(contestants, func(i, j int) bool {
+		return contestants[i].Points > contestants[j].Points
+	})
+	if filter == "all" {
+		return contestants, err
+	} else if filter == "survived" {
+		survivedContestants := make([]model.Contestant, 0)
+		for _, contestant := range contestants {
+			if contestant.Permissions.PublicMatchEnabled {
+				survivedContestants = append(survivedContestants, contestant)
+			}
+		}
+		return survivedContestants, nil
+	} else {
+		eliminatedContestants := make([]model.Contestant, 0)
+		for _, contestant := range contestants {
+			if !contestant.Permissions.PublicMatchEnabled {
+				eliminatedContestants = append(eliminatedContestants, contestant)
+			}
+		}
+		return eliminatedContestants, nil
+	}
 }
 
 func createMatch(contestantsjs []interface{}, options map[string]interface{}, baseContestID uint) (err error) {
@@ -38,6 +60,45 @@ func createMatch(contestantsjs []interface{}, options map[string]interface{}, ba
 	extraInfo := options["extraInfo"].(map[string]interface{})
 	_, err = AddMatch(Ais, baseContestID, tag, extraInfo)
 	return err
+}
+
+func updateContestant(contestantjs interface{}, body map[string]interface{}, baseContestID uint) (err error) {
+	contestantjsm := contestantjs.(map[string]interface{})
+	contestantID := uint(contestantjsm["id"].(float64))
+	contestant, err := model.GetContestantByID(contestantID, nil)
+	if err != nil {
+		return err
+	}
+
+	// 获取 body 中的字段
+	performance, ok := body["Performance"]
+	if ok {
+		contestant.Performance = performance.(string)
+	}
+	assignAiEnabled, ok := body["AssignAiEnabled"]
+	if ok {
+		contestant.Permissions.AssignAiEnabled = assignAiEnabled.(bool)
+	}
+	publicMatchEnabled, ok := body["PublicMatchEnabled"]
+	if ok {
+		contestant.Permissions.PublicMatchEnabled = publicMatchEnabled.(bool)
+	}
+	points, ok := body["Points"]
+	if ok {
+		contestant.Points = points.(int)
+	}
+
+	// 更新 contestant
+	err = model.UpdateContestantByID(contestantID, map[string]interface{}{
+		"performance": contestant.Performance,
+		"permissions": contestant.Permissions,
+		"points":      contestant.Points,
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func AddMatch(playerIDs []uint, baseContestID uint, tag string, extraInfo map[string]interface{}) (matchID uint, err error) {
