@@ -173,7 +173,7 @@ func SetGoFuncForJS(baseContestID uint, funcName string, goFunc func(goja.Functi
 	return nil
 }
 
-func CreateMatch(baseContestID uint) error {
+func SetCreateMatch(baseContestID uint) error {
 	err := SetGoFuncForJS(baseContestID, "createMatch", func(call goja.FunctionCall) goja.Value {
 		// 获取 contestants 参数
 		contestantsVal := call.Argument(0)
@@ -205,7 +205,7 @@ func CreateMatch(baseContestID uint) error {
 	return nil
 }
 
-func GetContestantsByRanking(baseContestID uint) error {
+func SetGetContestantsByRanking(baseContestID uint) error {
 	err := SetGoFuncForJS(baseContestID, "getContestantsByRanking", func(call goja.FunctionCall) goja.Value {
 		// 获取 filter 参数
 		filterVal := call.Argument(0)
@@ -235,7 +235,7 @@ func GetContestantsByRanking(baseContestID uint) error {
 	return nil
 }
 
-func UpdateContestant(baseContestID uint) error {
+func SetUpdateContestant(baseContestID uint) error {
 	err := SetGoFuncForJS(baseContestID, "updateContestant", func(call goja.FunctionCall) goja.Value {
 		// 获取 contestant 参数
 		contestantVal := call.Argument(0)

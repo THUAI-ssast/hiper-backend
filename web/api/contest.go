@@ -234,8 +234,8 @@ func getContests(c *gin.Context) {
 		}
 		contestData := gin.H{
 			"base_contest": gin.H{
-				"id":         contest.ID,
-				"Contest_id": contest.BaseContest.GameID,
+				"id":      contest.ID,
+				"game_id": contest.BaseContest.GameID,
 				"states": gin.H{
 					"assign_ai_enabled":                  contest.BaseContest.States.AssignAiEnabled,
 					"commit_ai_enabled":                  contest.BaseContest.States.CommitAiEnabled,

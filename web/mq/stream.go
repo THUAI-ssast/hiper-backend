@@ -80,3 +80,10 @@ func ListenMsgForMatchFinished(ctx context.Context, topic string) (err error) {
 func InitMq() {
 	go ListenMsgForMatchFinished(Ctx_callback, "match_finished")
 }
+
+func InitGameMq(baseContestID uint) {
+	SetCreateMatch(baseContestID)
+	SetGetContestantsByRanking(baseContestID)
+	SetUpdateContestant(baseContestID)
+	SendBuildGameLogicMsg(Ctx_callback, baseContestID)
+}

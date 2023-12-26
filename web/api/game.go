@@ -203,7 +203,7 @@ func updateGameLogic(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	mq.SendBuildGameLogicMsg(model.Ctx, gameID)
+	mq.InitGameMq(gameID)
 	game.RetGameSettings(c)
 }
 
