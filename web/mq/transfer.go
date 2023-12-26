@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"log"
 )
@@ -49,10 +50,20 @@ func SendChangeGameMsg(ctx context.Context, gameID uint) error {
 	})
 }
 
-func SendBuildMatchMsg(ctx context.Context, matchID uint) error {
+func SendBuildMatchMsg(ctx context.Context, matchID uint, extraInfo map[string]interface{}) error {
+	// 将 extraInfo 转换为 JSON 格式的字符串
+	extraInfoBytes, err := json.Marshal(extraInfo)
+	if err != nil {
+		return err
+	}
+	extraInfoStr := string(extraInfoBytes)
+
+	// 将 matchID 和 extraInfoStr 添加到 Body 字段中
+	body := fmt.Sprintf("%d,%s", matchID, extraInfoStr)
+
 	return sendMsg(ctx, &Msg{
 		Topic: "Build",
-		Body:  []byte(fmt.Sprintf("%d", matchID)),
+		Body:  []byte(body),
 		Type:  "Match",
 	})
 }

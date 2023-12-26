@@ -131,3 +131,103 @@ func CallOnMatchFinished(matchID uint, replay string) error {
 
 	return nil
 }
+
+func SetGoFuncForJS(baseContestID uint, funcName string, goFunc func(goja.FunctionCall) goja.Value) error {
+	// 打开 JavaScript 文件
+	baseContest, err := model.GetBaseContestByID(baseContestID)
+	if err != nil {
+		return err
+	}
+	script := baseContest.Script
+
+	// 查找 map 中对应的 runtime
+	mutex.Lock()
+	vm, exists := baseContestIDToRuntime[baseContestID]
+	mutex.Unlock()
+
+	// 如果没有找到，创建一个新的 runtime
+	if !exists {
+		err := CreateRuntimeWithJSFile(baseContestID)
+		if err != nil {
+			return err
+		}
+
+		// 再次查找 runtime
+		mutex.Lock()
+		vm = baseContestIDToRuntime[baseContestID]
+		mutex.Unlock()
+	}
+
+	// 映射 Go 函数
+	vm.Set(funcName, goFunc)
+
+	// 执行 JavaScript 代码
+	_, err = vm.RunString(script)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func CreateMatch(baseContestID uint) error {
+	err := SetGoFuncForJS(baseContestID, "createMatch", func(call goja.FunctionCall) goja.Value {
+		// 获取 contestants 参数
+		contestantsVal := call.Argument(0)
+		contestants, ok := contestantsVal.Export().([]interface{})
+		if !ok {
+			panic("contestants must be an array")
+		}
+
+		// 获取 options 参数
+		optionsVal := call.Argument(1)
+		options, ok := optionsVal.Export().(map[string]interface{})
+		if !ok {
+			panic("options must be an object")
+		}
+
+		// 调用 createMatch 函数
+		err := createMatch(contestants, options, baseContestID)
+		if err != nil {
+			panic(err)
+		}
+
+		// 返回 undefined
+		return goja.Undefined()
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func GetContestantsByRanking(baseContestID uint) error {
+	err := SetGoFuncForJS(baseContestID, "getContestantsByRanking", func(call goja.FunctionCall) goja.Value {
+		// 获取 filter 参数
+		filterVal := call.Argument(0)
+		filter, ok := filterVal.Export().(string)
+		if !ok {
+			panic("filter must be a string")
+		}
+
+		// 调用 getContestantsByRanking 函数
+		contestants, err := getContestantsByRanking(filter, baseContestID)
+		if err != nil {
+			panic(err)
+		}
+
+		vm := baseContestIDToRuntime[baseContestID]
+
+		// 将 contestants 转换为 goja.Value
+		contestantsVal := vm.ToValue(contestants)
+
+		// 返回 contestantsVal
+		return contestantsVal
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
