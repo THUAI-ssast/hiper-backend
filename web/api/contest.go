@@ -3,7 +3,6 @@ package api
 import (
 	"hiper-backend/contest"
 	"hiper-backend/model"
-	"hiper-backend/mq"
 	"net/http"
 	"strconv"
 
@@ -59,7 +58,6 @@ func createContest(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	mq.SendBuildContestMsg(model.Ctx, tempContest.ID)
 	c.JSON(200, gin.H{"id": tempContest.ID})
 	c.Abort()
 }

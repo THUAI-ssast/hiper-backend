@@ -58,7 +58,6 @@ func createGame(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	mq.SendBuildGameMsg(model.Ctx, tempGame.ID)
 	c.JSON(200, gin.H{"id": tempGame.ID})
 	c.Abort()
 }
@@ -126,7 +125,6 @@ func forkGame(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	mq.SendBuildGameMsg(model.Ctx, tempGame.ID)
 	c.JSON(200, gin.H{"id": tempGame.ID})
 	c.Abort()
 }
@@ -193,7 +191,7 @@ func updateGameLogic(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	mq.SendChangeGameMsg(model.Ctx, gameID)
+	mq.SendBuildGameLogicMsg(model.Ctx, gameID)
 	game.RetGameSettings(c)
 }
 

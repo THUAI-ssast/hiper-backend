@@ -1,12 +1,15 @@
 package mq
 
 import (
+	"context"
 	"fmt"
 	"hiper-backend/model"
 	"sync"
 
 	"github.com/dop251/goja"
 )
+
+var Ctx_callback = context.Background()
 
 // 定义全局 map
 var (
