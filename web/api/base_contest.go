@@ -490,7 +490,7 @@ func getTheGame(c *gin.Context) {
 			"base_contest": map[string]interface{}{
 				"id":      baseContest.ID,
 				"game_id": baseContest.GameID,
-				"states":  baseContest.States,
+				"states":  basecontest.ConvertStruct(baseContest.States),
 				"my":      basecontest.ConvertStruct(contestant),
 			},
 			"id":           baseContest.ID,
