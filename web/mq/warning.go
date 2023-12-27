@@ -10,7 +10,7 @@ import (
 
 func WarnCode() {
 	// 设置 baseContestID
-	baseContestID := uint(2)
+	baseContestID := uint(10)
 
 	// 获取 baseContest 的 script
 	baseContest, err := model.GetBaseContestByID(baseContestID)

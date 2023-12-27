@@ -675,6 +675,7 @@ func commitAi(c *gin.Context) {
 	}
 
 	ai := model.Ai{}
+	ai.Status.State = model.TaskStateFinished
 	ai.BaseContestID = uint(gameID)
 	userid := c.MustGet("userID").(int)
 	ai.UserID = uint(userid)
