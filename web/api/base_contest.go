@@ -770,7 +770,7 @@ func downloadTheAI(c *gin.Context) {
 			return err
 		}
 
-		if strings.HasPrefix(info.Name(), aiFilePath) {
+		if strings.HasPrefix(path, aiFilePath) {
 			fileName = path
 			return nil
 		}
@@ -1077,7 +1077,7 @@ func getMatch(c *gin.Context) {
 	}
 
 	// Construct the base path for the replay file
-	replayFilePath := fmt.Sprintf("/var/hiper/matches/%d/replay.json", matchID)
+	replayFilePath := fmt.Sprintf("/var/hiper/matches/%d/replay", matchID)
 	fileDir := "/var/hiper/matches/"
 	var fileName string
 
@@ -1087,7 +1087,7 @@ func getMatch(c *gin.Context) {
 			return err
 		}
 
-		if strings.HasPrefix(info.Name(), replayFilePath) {
+		if strings.HasPrefix(path, replayFilePath) {
 			fileName = path
 			return nil
 		}
