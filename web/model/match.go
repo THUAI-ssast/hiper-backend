@@ -56,6 +56,12 @@ func GetMatches(query QueryParams, preload bool) (matches []Match, count int64, 
 	return matches, count, nil
 }
 
+func GetMatchNumByBaseContestID(baseContestID uint) (uint, error) {
+	var count int64
+	err := db.Model(&Match{}).Where("base_contest_id = ?", baseContestID).Count(&count).Error
+	return uint(count), err
+}
+
 func GetMatchByID(id uint, preload bool) (match Match, err error) {
 	tx := db.Where("id = ?", id)
 	if preload {

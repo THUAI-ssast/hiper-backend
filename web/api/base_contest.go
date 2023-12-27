@@ -1119,7 +1119,7 @@ func getMatches(c *gin.Context) {
 				},
 				"score": match.Scores[i],
 				"user": map[string]interface{}{
-					"avater_url": user.AvatarURL,
+					"avatar_url": user.AvatarURL,
 					"username":   user.Username,
 					"nickname":   user.Nickname,
 				},
@@ -1136,9 +1136,14 @@ func getMatches(c *gin.Context) {
 		}
 		matchList = append(matchList, matchData)
 	}
+	count, err := model.GetMatchNumByBaseContestID(baseContest.ID)
+	if err != nil {
+		c.JSON(404, gin.H{})
+		return
+	}
 
 	response := map[string]interface{}{
-		"count": len(matchList),
+		"count": count,
 		"data":  matchList,
 	}
 	c.JSON(200, response)
