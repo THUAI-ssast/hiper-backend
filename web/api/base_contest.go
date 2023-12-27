@@ -175,21 +175,39 @@ func updateGameMetadata(c *gin.Context) {
 	}
 	gameID := basecontest.GameID
 
-	err = model.UpdateGameByID(gameID, map[string]interface{}{
-		"cover_url": input.CoverURL,
-		"readme":    input.Readme,
-		"title":     input.Title,
-	})
-	if err != nil {
-		c.JSON(422, gin.H{"error": ErrorFor422{
-			Code:  Invalid,
-			Field: "cannot update game metadata",
-		}})
+	if gameID == baseContestID {
+		err = model.UpdateGameByID(baseContestID, map[string]interface{}{
+			"cover_url": input.CoverURL,
+			"readme":    input.Readme,
+			"title":     input.Title,
+		})
+		if err != nil {
+			c.JSON(422, gin.H{"error": ErrorFor422{
+				Code:  Invalid,
+				Field: "cannot update game metadata",
+			}})
+			c.Abort()
+			return
+		}
+		c.JSON(200, gin.H{})
 		c.Abort()
-		return
+	} else {
+		err = model.UpdateContestByID(baseContestID, map[string]interface{}{
+			"cover_url": input.CoverURL,
+			"readme":    input.Readme,
+			"title":     input.Title,
+		})
+		if err != nil {
+			c.JSON(422, gin.H{"error": ErrorFor422{
+				Code:  Invalid,
+				Field: "cannot update game metadata",
+			}})
+			c.Abort()
+			return
+		}
+		c.JSON(200, gin.H{})
+		c.Abort()
 	}
-	c.JSON(200, gin.H{})
-	c.Abort()
 }
 
 func addSdk(c *gin.Context) {
