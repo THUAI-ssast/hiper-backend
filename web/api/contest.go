@@ -36,6 +36,7 @@ func createContest(c *gin.Context) {
 	}
 	tempContest := model.Contest{}
 	if input.NewAdminUsername == "" {
+		tempContest.RegisteredUsers = append(tempContest.RegisteredUsers, usr)
 		err = tempContest.Create(input.GameID, []uint{userID})
 	} else {
 		newAdmin, err := model.GetUserByUsername(input.NewAdminUsername)
@@ -47,6 +48,7 @@ func createContest(c *gin.Context) {
 			c.Abort()
 			return
 		}
+		tempContest.RegisteredUsers = append(tempContest.RegisteredUsers, newAdmin)
 		err = tempContest.Create(input.GameID, []uint{newAdmin.ID})
 		if err != nil {
 			c.JSON(500, gin.H{"error": "failed to create Contest"})
