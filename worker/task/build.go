@@ -1,10 +1,33 @@
 package task
 
-// TODO
+import (
+	"log"
+	"strconv"
+)
+
 func Build(values map[string]interface{}) {
-	// 获取任务所需信息
+	idInt, err := strconv.Atoi(values["id"].(string))
+	if err != nil {
+		log.Fatal(err)
+	}
+	id := uint(idInt)
 
-	// 起容器，执行任务
+	switch values["type"] {
+	case "game_logic":
+		buildGameLogic(id)
+	case "ai":
+		buildAI(id)
+	}
+}
 
-	// 等待任务完成，获取任务输出，保存与修改相关信息
+// 获取任务所需信息
+// 起容器，执行任务
+// 等待任务完成，获取任务输出，保存与修改相关信息
+
+func buildGameLogic(gameID uint) {
+	// TODO
+}
+
+func buildAI(aiID uint) {
+	// TODO
 }
