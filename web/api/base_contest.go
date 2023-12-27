@@ -225,7 +225,6 @@ func addSdk(c *gin.Context) {
 	}
 
 	// 获取文件的扩展名
-	fmt.Println(input.Sdk.Filename)
 	fileExt := filepath.Ext(input.Sdk.Filename)
 
 	// 使用文件的扩展名构造文件路径
@@ -474,10 +473,10 @@ func getAis(c *gin.Context) {
 	for _, ai := range ais {
 		aiData := gin.H{
 			"id":     ai.ID,
-			"sdk":    ai.Sdk,
+			"sdk":    basecontest.ConvertStruct(ai.Sdk),
 			"note":   ai.Note,
-			"status": ai.Status,
-			"user":   ai.User,
+			"status": basecontest.ConvertStruct(ai.Status),
+			"user":   basecontest.ConvertStruct(ai.User),
 			"time":   ai.CreatedAt,
 		}
 		aiList = append(aiList, aiData)

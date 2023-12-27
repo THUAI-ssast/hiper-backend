@@ -111,7 +111,19 @@ func registerContest(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	c.JSON(200, gin.H{"id": contest.ID})
+
+	// 更新 Contestant
+	contestant := model.Contestant{
+		BaseContestID: contest.ID,
+		UserID:        usr.ID,
+	}
+	err = contestant.Create()
+	if err != nil {
+		c.JSON(500, gin.H{"error": "failed to register Contest"})
+		c.Abort()
+		return
+	}
+	c.JSON(200, gin.H{})
 }
 
 func exitContest(c *gin.Context) {
