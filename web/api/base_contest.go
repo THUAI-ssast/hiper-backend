@@ -1,12 +1,18 @@
 package api
 
 import (
+	"fmt"
+	"hiper-backend/basecontest"
 	"hiper-backend/game"
 	"hiper-backend/model"
 	"hiper-backend/mq"
+	"mime"
 	"mime/multipart"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -14,7 +20,7 @@ import (
 func deleteGame(c *gin.Context) {
 	ingameID := c.MustGet("gameID").(int)
 	gameID := uint(ingameID)
-	err := model.DeleteGameByID(gameID)
+	err := model.DeleteBaseContestByID(gameID)
 	if err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		c.Abort()
@@ -90,7 +96,7 @@ func relinquishAdmin(c *gin.Context) {
 	}
 	if admins, _ := game.GetAdmins(); len(admins) == 1 {
 		if input.Force {
-			err = model.DeleteGameByID(gameID)
+			err = model.DeleteBaseContestByID(gameID)
 			if err != nil {
 				c.JSON(422, gin.H{"error": ErrorFor422{
 					Code:  Invalid,
@@ -132,7 +138,7 @@ func updateGameScript(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	err := model.UpdateGameByID(gameID, map[string]interface{}{"script": input.Script})
+	err := model.UpdateBaseContestByID(gameID, map[string]interface{}{"script": input.Script})
 	if err != nil {
 		c.JSON(422, gin.H{"error": ErrorFor422{
 			Code:  Invalid,
@@ -147,7 +153,7 @@ func updateGameScript(c *gin.Context) {
 
 func updateGameMetadata(c *gin.Context) {
 	ingameID := c.MustGet("gameID").(int)
-	gameID := uint(ingameID)
+	baseContestID := uint(ingameID)
 	var input struct {
 		CoverURL string `json:"cover_url"`
 		Readme   string `json:"readme"`
@@ -158,34 +164,63 @@ func updateGameMetadata(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	err := model.UpdateGameByID(gameID, map[string]interface{}{
-		"cover_url": input.CoverURL,
-		"readme":    input.Readme,
-		"title":     input.Title,
-	})
+	basecontest, err := model.GetBaseContestByID(baseContestID)
 	if err != nil {
 		c.JSON(422, gin.H{"error": ErrorFor422{
 			Code:  Invalid,
-			Field: "cannot update game metadata",
+			Field: "cannot get game",
 		}})
 		c.Abort()
 		return
 	}
-	c.JSON(200, gin.H{})
-	c.Abort()
+	gameID := basecontest.GameID
+
+	if gameID == baseContestID {
+		err = model.UpdateGameByID(baseContestID, map[string]interface{}{
+			"cover_url": input.CoverURL,
+			"readme":    input.Readme,
+			"title":     input.Title,
+		})
+		if err != nil {
+			c.JSON(422, gin.H{"error": ErrorFor422{
+				Code:  Invalid,
+				Field: "cannot update game metadata",
+			}})
+			c.Abort()
+			return
+		}
+		c.JSON(200, gin.H{})
+		c.Abort()
+	} else {
+		err = model.UpdateContestByID(baseContestID, map[string]interface{}{
+			"cover_url": input.CoverURL,
+			"readme":    input.Readme,
+			"title":     input.Title,
+		})
+		if err != nil {
+			c.JSON(422, gin.H{"error": ErrorFor422{
+				Code:  Invalid,
+				Field: "cannot update game metadata",
+			}})
+			c.Abort()
+			return
+		}
+		c.JSON(200, gin.H{})
+		c.Abort()
+	}
 }
 
 func addSdk(c *gin.Context) {
 	ingameID := c.MustGet("gameID").(int)
 	gameID := uint(ingameID)
 	var input struct {
-		Name              string                `json:"name"`
-		Description       string                `json:"description"`
-		Sdk               *multipart.FileHeader `json:"sdk"`
-		BuildAiDockerfile string                `json:"build_ai_dockerfile"`
-		RunAiDockerfile   string                `json:"run_ai_dockerfile"`
+		Name              string                `form:"name"`
+		Description       string                `form:"description"`
+		Sdk               *multipart.FileHeader `form:"sdk"`
+		BuildAiDockerfile string                `form:"build_ai_dockerfile"`
+		RunAiDockerfile   string                `form:"run_ai_dockerfile"`
 	}
-	if err := c.ShouldBindJSON(&input); err != nil {
+	if err := c.ShouldBind(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		c.Abort()
 		return
@@ -206,8 +241,19 @@ func addSdk(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	//saveSdkFile(sdk.ID,input.Sdk)
-	//TODO:往sdk中添加，存储文件至/var/hiper/sdks/sdks:id.xxx
+
+	// 获取文件的扩展名
+	fileExt := filepath.Ext(input.Sdk.Filename)
+
+	// 使用文件的扩展名构造文件路径
+	filePath := fmt.Sprintf("/var/hiper/sdks/%d/src%s", sdk.ID, fileExt)
+
+	if err := c.SaveUploadedFile(input.Sdk, filePath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.Abort()
+		return
+	}
+
 	mq.SendBuildSdkMsg(model.Ctx, sdk.ID)
 	c.JSON(200, gin.H{})
 	c.Abort()
@@ -264,13 +310,13 @@ func updateSdk(c *gin.Context) {
 		return
 	}
 	var input struct {
-		Name              string                `json:"name"`
-		Readme            string                `json:"readme"`
-		Sdk               *multipart.FileHeader `json:"sdk"`
-		BuildAiDockerfile string                `json:"build_ai_dockerfile"`
-		RunAiDockerfile   string                `json:"run_ai_dockerfile"`
+		Name              string                `form:"name"`
+		Readme            string                `form:"readme"`
+		Sdk               *multipart.FileHeader `form:"sdk"`
+		BuildAiDockerfile string                `form:"build_ai_dockerfile"`
+		RunAiDockerfile   string                `form:"run_ai_dockerfile"`
 	}
-	if err := c.ShouldBindJSON(&input); err != nil {
+	if err := c.ShouldBind(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		c.Abort()
 		return
@@ -289,8 +335,17 @@ func updateSdk(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	//saveSdkFile(sdk.ID,input.Sdk)
-	//TODO:往sdk中添加，存储文件至/var/hiper/sdks/sdks:id.xxx
+	// 获取文件的扩展名
+	fileExt := filepath.Ext(input.Sdk.Filename)
+
+	// 使用文件的扩展名构造文件路径
+	filePath := fmt.Sprintf("/var/hiper/sdks/%d/src%s", sdk.ID, fileExt)
+
+	if err := c.SaveUploadedFile(input.Sdk, filePath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.Abort()
+		return
+	}
 	c.JSON(200, gin.H{})
 	c.Abort()
 }
@@ -315,6 +370,28 @@ func updateGameStates(c *gin.Context) {
 	updates := make(map[string]interface{})
 	if input.AssignAiEnabled != nil {
 		updates["assign_ai_enabled"] = input.AssignAiEnabled
+		basecontest, err := model.GetBaseContestByID(gameID)
+		if err != nil {
+			c.JSON(422, gin.H{"error": ErrorFor422{
+				Code:  Invalid,
+				Field: "cannot update game states",
+			}})
+			c.Abort()
+			return
+		}
+		if basecontest.GameID != basecontest.ID {
+			err = model.UpdateContestByID(basecontest.ID, map[string]interface{}{
+				"registration_enabled": input.AssignAiEnabled,
+			})
+			if err != nil {
+				c.JSON(422, gin.H{"error": ErrorFor422{
+					Code:  Invalid,
+					Field: "cannot update contest states",
+				}})
+				c.Abort()
+				return
+			}
+		}
 	}
 	if input.CommitAiEnabled != nil {
 		updates["commit_ai_enabled"] = input.CommitAiEnabled
@@ -331,7 +408,7 @@ func updateGameStates(c *gin.Context) {
 	if input.TestMatchEnabled != nil {
 		updates["test_match_enabled"] = input.TestMatchEnabled
 	}
-	err := model.UpdateGameByID(gameID, updates)
+	err := model.UpdateBaseContestByID(gameID, updates)
 	if err != nil {
 		c.JSON(422, gin.H{"error": ErrorFor422{
 			Code:  Invalid,
@@ -350,27 +427,104 @@ func getTheGame(c *gin.Context) {
 		c.JSON(400, gin.H{})
 		return
 	}
-	game, err := model.GetGameByID(uint(id))
+	baseContest, err := model.GetBaseContestByID(uint(id))
 	if err != nil {
-		c.JSON(404, gin.H{"error": "Game not found"})
+		c.JSON(400, gin.H{"error": "Game not found"})
 		return
 	}
 
 	userID := c.MustGet("userID").(int)
-	pri, err := game.GetPrivilege(uint(userID))
+	user, err := model.GetUserByID(uint(userID))
+	if err != nil {
+		c.JSON(400, gin.H{"error": "User not found"})
+		return
+	}
+	isAdmin, _ := baseContest.IsAdmin(user.ID)
+	contests, err := user.GetContestRegistered()
+	if err != nil {
+		c.JSON(400, gin.H{"error": "contests not found"})
+		return
+	}
+	isRegistered := false
+	for _, contest := range contests {
+		if contest.ID == baseContest.ID {
+			isRegistered = true
+			break
+		}
+	}
+	if baseContest.GameID == baseContest.ID {
+		isRegistered = true
+	}
+	pri := "unregistered"
+	if isRegistered {
+		pri = "registered"
+	}
+	if isAdmin {
+		pri = "admin"
+	}
+
+	preloads := []model.PreloadQuery{
+		{
+			Table:   "User",
+			Columns: []string{},
+		},
+		{
+			Table:   "AssignedAi",
+			Columns: []string{},
+		},
+	}
+	contestant, err := model.GetContestant(map[string]interface{}{"user_id": userID, "base_contest_id": baseContest.ID}, preloads)
 	if err != nil {
 		c.JSON(500, gin.H{})
 		return
 	}
+	if baseContest.GameID == baseContest.ID {
+		game, err := model.GetGameByID(baseContest.GameID)
 
-	c.JSON(200, gin.H{
-		"id":           game.ID,
-		"game_id":      game.BaseContest.GameID,
-		"metadata":     game.Metadata,
-		"states":       game.BaseContest.States,
-		"my_privilege": pri,
-		// TODO: my
-	})
+		if err != nil {
+			c.JSON(404, gin.H{})
+			return
+		}
+
+		c.JSON(200, gin.H{
+			"base_contest": map[string]interface{}{
+				"id":      baseContest.ID,
+				"game_id": baseContest.GameID,
+				"states":  basecontest.ConvertStruct(baseContest.States),
+				"my":      basecontest.ConvertStruct(contestant),
+			},
+			"id":           baseContest.ID,
+			"my_privilege": pri,
+			"metadata": map[string]interface{}{
+				"cover_url": game.Metadata.CoverUrl,
+				"readme":    game.Metadata.Readme,
+				"title":     game.Metadata.Title,
+			},
+		})
+	} else {
+		contest, err := model.GetContestByID(uint(id))
+
+		if err != nil {
+			c.JSON(404, gin.H{})
+			return
+		}
+
+		c.JSON(200, gin.H{
+			"base_contest": map[string]interface{}{
+				"id":      baseContest.ID,
+				"game_id": baseContest.GameID,
+				"states":  basecontest.ConvertStruct(baseContest.States),
+				"my":      basecontest.ConvertStruct(contestant),
+			},
+			"id":           baseContest.ID,
+			"my_privilege": pri,
+			"metadata": map[string]interface{}{
+				"cover_url": contest.Metadata.CoverUrl,
+				"readme":    contest.Metadata.Readme,
+				"title":     contest.Metadata.Title,
+			},
+		})
+	}
 }
 
 func getAis(c *gin.Context) {
@@ -384,7 +538,12 @@ func getAis(c *gin.Context) {
 		Offset: offset,
 	}
 	if username != "" {
-		queryParams.Filter["username"] = username
+		user, err := model.GetUserByUsername(username)
+		if err != nil {
+			c.JSON(404, gin.H{"error": "User not found"})
+			return
+		}
+		queryParams.Filter["user_id"] = user.ID
 	}
 
 	ais, _, err := model.GetAis(queryParams, true)
@@ -397,11 +556,11 @@ func getAis(c *gin.Context) {
 	for _, ai := range ais {
 		aiData := gin.H{
 			"id":     ai.ID,
-			"sdk":    ai.Sdk,
+			"sdk":    map[string]interface{}{"id": ai.SdkID, "name": ai.Sdk.Name},
 			"note":   ai.Note,
-			"status": ai.Status,
-			"user":   ai.User,
-			"time":   ai.CreatedAt, // TODO: 可能代表创建时间
+			"status": basecontest.ConvertStruct(ai.Status),
+			"user":   basecontest.ConvertStruct(ai.User),
+			"time":   ai.CreatedAt,
 		}
 		aiList = append(aiList, aiData)
 	}
@@ -440,7 +599,19 @@ func commitAi(c *gin.Context) {
 		return
 	}
 
-	// file, err := c.FormFile("ai")
+	file, err := c.FormFile("ai")
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"errors": []map[string]interface{}{
+				{
+					"code":   "missing_field",
+					"field":  "ai",
+					"detail": "AI file is required",
+				},
+			},
+		})
+		return
+	}
 	_, err = c.FormFile("ai")
 	if err != nil {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{
@@ -478,11 +649,64 @@ func commitAi(c *gin.Context) {
 		return
 	}
 
-	// TODO: 上传文件、更新数据库
-	// update???
-	//TODO:以下的两个其实均为AIID，需要修改
-	mq.SendBuildAIMsg(model.Ctx, uint(gameID))
-	c.JSON(http.StatusOK, gin.H{"id": gameID})
+	ai := model.Ai{}
+	ai.BaseContestID = uint(gameID)
+	userid := c.MustGet("userID").(int)
+	ai.UserID = uint(userid)
+	ai.Create()
+
+	model.UpdateAiByID(ai.ID, map[string]interface{}{
+		"note":   note,
+		"sdk_id": sdkID,
+	})
+
+	// Open the uploaded file
+	openedFile, err := file.Open()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to open uploaded file"})
+		return
+	}
+	defer openedFile.Close()
+
+	// Read a chunk to get the file type
+	buffer := make([]byte, 512)
+	if _, err = openedFile.Read(buffer); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to read uploaded file"})
+		return
+	}
+
+	// Detect content type
+	contentType := http.DetectContentType(buffer)
+
+	// Reset the read pointer of the file
+	if _, err = openedFile.Seek(0, 0); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to reset file read pointer"})
+		return
+	}
+	var extension string
+
+	// Map MIME type to file extension
+	exts, err := mime.ExtensionsByType(contentType)
+	if err != nil || len(exts) == 0 {
+		extension = ".zip"
+	} else {
+		extension = exts[0]
+	}
+
+	// Construct file path
+	aiFilePath := fmt.Sprintf("/var/hiper/ais/%d/src%s", ai.ID, extension)
+
+	// Save the file
+	if err := c.SaveUploadedFile(file, aiFilePath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":  "Failed to save AI file",
+			"detail": err.Error(),
+		})
+		return
+	}
+
+	mq.SendBuildAIMsg(model.Ctx, uint(ai.ID))
+	c.JSON(http.StatusOK, gin.H{"id": ai.ID})
 }
 
 func getTheAI(c *gin.Context) {
@@ -491,7 +715,7 @@ func getTheAI(c *gin.Context) {
 		c.JSON(400, gin.H{})
 		return
 	}
-	_, err = model.GetGameByID(uint(id))
+	_, err = model.GetBaseContestByID(uint(id))
 	if err != nil {
 		c.JSON(404, gin.H{"error": "Game not found"})
 		return
@@ -518,42 +742,68 @@ func getTheAI(c *gin.Context) {
 }
 
 func downloadTheAI(c *gin.Context) {
-	// 	id, err := strconv.Atoi(c.Param("id"))
-	// 	if err != nil {
-	// 		c.JSON(400, gin.H{})
-	// 		return
-	// 	}
-	// 	_, err = model.GetGameByID(uint(id))
-	// 	if err != nil {
-	// 		c.JSON(404, gin.H{"error": "Game not found"})
-	// 		return
-	// 	}
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(400, gin.H{})
+		return
+	}
+	_, err = model.GetBaseContestByID(uint(id))
+	if err != nil {
+		c.JSON(404, gin.H{"error": "Game not found"})
+		return
+	}
 
-	// 	ai_id, err := strconv.Atoi(c.Param("ai_id"))
-	// 	if err != nil {
-	// 		c.JSON(400, gin.H{})
-	// 		return
-	// 	}
-	// 	ai, err := model.GetAiByID(uint(ai_id), true)
-	// 	if err != nil {
-	// 		c.JSON(404, gin.H{"error": "AI not found"})
-	// 		return
-	// 	}
-	// 	//file, err := ai.GetFile()
-	// 	if err != nil {
-	// 		c.JSON(http.StatusNotFound, gin.H{"error": "file not found"})
-	// 		return
-	// 	}
+	ai_id, err := strconv.Atoi(c.Param("ai_id"))
+	if err != nil {
+		c.JSON(400, gin.H{})
+		return
+	}
 
-	// 	c.Writer.Header().Set("Content-Type", "application/octet-stream")
-	// 	c.Writer.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", "desired_filename.ext"))
-	// 	c.Writer.WriteHeader(http.StatusOK)
-	// 	c.Writer.Write(file)
+	// Construct the base path for the AI file
+	aiFilePath := fmt.Sprintf("/var/hiper/ais/%d/src", ai_id)
+	fileDir := "/var/hiper/ais/"
+	var fileName string
+
+	// Search for the file with the correct ai_id and extension
+	err = filepath.Walk(fileDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if strings.HasPrefix(path, aiFilePath) {
+			fileName = path
+			return nil
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error searching for file"})
+		return
+	}
+
+	if fileName == "" {
+		c.JSON(http.StatusNotFound, gin.H{"error": "AI file not found"})
+		return
+	}
+
+	// Read the file content
+	fileContent, err := os.ReadFile(fileName)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read AI file"})
+		return
+	}
+
+	// Send the file as a download
+	c.Writer.Header().Set("Content-Type", "application/octet-stream")
+	c.Writer.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filepath.Base(fileName)))
+	c.Writer.WriteHeader(http.StatusOK)
+	c.Writer.Write(fileContent)
 }
 
 func editAiNote(c *gin.Context) {
-	//aiID, err := strconv.Atoi(c.Param("ai_id"))
-	_, err := strconv.Atoi(c.Param("ai_id"))
+	aiID, err := strconv.Atoi(c.Param("ai_id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid AI ID",
@@ -572,8 +822,7 @@ func editAiNote(c *gin.Context) {
 		return
 	}
 
-	// TODO: somgthing wrong need to revise
-	// err = update(map[string]interface{}{"note": requestBody.Note}, map[string]interface{}{"note": requestBody.Note})
+	err = model.UpdateAiByID(uint(aiID), map[string]interface{}{"note": requestBody.Note})
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": "AI not found",
@@ -581,55 +830,328 @@ func editAiNote(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "AI note updated successfully",
-	})
+	c.JSON(http.StatusOK, gin.H{})
 }
 
 func getContestants(c *gin.Context) {
-	// 	id, err := strconv.Atoi(c.Param("id"))
-	// 	if err != nil {
-	// 		c.JSON(400, gin.H{})
-	// 		return
-	// 	}
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(400, gin.H{})
+		return
+	}
 
-	// 	game, err := model.GetGameByID(uint(id))
-	// 	if err != nil {
-	// 		c.JSON(404, gin.H{})
-	// 		return
-	// 	}
+	baseContest, err := model.GetBaseContestByID(uint(id))
+	if err != nil {
+		c.JSON(404, gin.H{})
+		return
+	}
 
-	// 	contestants, err := game.GetContestants()
-	// 	if err != nil {
-	// 		c.JSON(404, gin.H{})
-	// 		return
-	// 	}
+	preloads := []model.PreloadQuery{
+		{
+			Table:   "User",
+			Columns: []string{},
+		},
+		{
+			Table:   "AssignedAi",
+			Columns: []string{},
+		},
+	}
+	contestants, err := baseContest.GetContestants(preloads)
+	if err != nil {
+		c.JSON(400, gin.H{})
+		return
+	}
 
-	// 	var contestantList []gin.H
-	// 	for _, contestant := range contestants {
-	// 		userid := contestant.UserId
-	// 		user, err := model.GetUserByID(uint(userid))
-	// 		if err != nil {
-	// 			c.JSON(400, gin.H{})
-	// 			return
-	// 		}
+	contestantList := []gin.H{}
+	for _, contestant := range contestants {
+		userid := contestant.UserID
+		user, err := model.GetUserByID(uint(userid))
+		if err != nil {
+			c.JSON(400, gin.H{})
+			return
+		}
 
-	// 		aiid := contestant.AssignedAiId
-	// 		ai, err := game.GetAiByID(uint(aiid), true)
-	// 		if err != nil {
-	// 			c.JSON(400, gin.H{})
-	// 			return
-	// 		}
+		aiid := contestant.AssignedAiID
+		ai, err := model.GetAiByID(uint(aiid), true)
+		if err != nil {
+			c.JSON(400, gin.H{})
+			return
+		}
 
-	// 		contestantData := gin.H{
-	// 			"performance": contestant.Performance,
-	// 			"permissions": contestant.Permissions,
-	// 			"points":      contestant.Points,
-	// 			"user":        user,
-	// 			"assigned_ai": ai,
-	// 		}
-	// 		contestantList = append(contestantList, contestantData)
-	// 	}
+		contestantData := gin.H{
+			"assigned_ai": basecontest.ConvertStruct(ai),
+			"performance": contestant.Performance,
+			"permissions": basecontest.ConvertStruct(contestant.Permissions),
+			"points":      contestant.Points,
+			"user":        basecontest.ConvertStruct(user),
+		}
+		contestantList = append(contestantList, contestantData)
+	}
 
-	// 	c.JSON(200, contestantList)
+	c.JSON(200, contestantList)
+}
+
+func assignAi(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(400, gin.H{})
+		return
+	}
+	baseContest, err := model.GetBaseContestByID(uint(id))
+	if err != nil {
+		c.JSON(400, gin.H{})
+		return
+	}
+
+	preloads := []model.PreloadQuery{
+		{
+			Table:   "User",
+			Columns: []string{},
+		},
+		{
+			Table:   "AssignedAi",
+			Columns: []string{},
+		},
+	}
+	userID := c.MustGet("userID").(int)
+	contestant, err := baseContest.GetContestantByUserID(uint(userID), preloads)
+	if err != nil {
+		c.JSON(400, gin.H{})
+		return
+	}
+
+	var input struct {
+		AIID int `json:"ai_id" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.Abort()
+		return
+	}
+	ai_id := input.AIID
+	contestant.AssignedAiID = uint(ai_id)
+
+	model.UpdateContestantByID(contestant.ID, map[string]interface{}{
+		"assigned_ai_id": uint(ai_id),
+	})
+
+	c.JSON(200, gin.H{})
+	mq.CallOnAIAssigned(contestant)
+}
+
+func getCurrentContestant(c *gin.Context) {
+	basecontestID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(400, gin.H{})
+		return
+	}
+	userID := c.MustGet("userID").(int)
+	preloads := []model.PreloadQuery{
+		{
+			Table:   "User",
+			Columns: []string{},
+		},
+		{
+			Table:   "AssignedAi",
+			Columns: []string{},
+		},
+	}
+	contestant, err := model.GetContestant(map[string]interface{}{"user_id": userID, "base_contest_id": basecontestID}, preloads)
+	if err != nil {
+		c.JSON(400, gin.H{})
+		return
+	}
+
+	aiid := contestant.AssignedAiID
+	ai, err := model.GetAiByID(uint(aiid), true)
+	if err != nil {
+		c.JSON(400, gin.H{})
+		return
+	}
+
+	userid := contestant.UserID
+	user, err := model.GetUserByID(uint(userid))
+	if err != nil {
+		c.JSON(400, gin.H{})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"assigned_ai": basecontest.ConvertStruct(ai),
+		"performance": contestant.Performance,
+		"permissions": basecontest.ConvertStruct(contestant.Permissions),
+		"points":      contestant.Points,
+		"user":        basecontest.ConvertStruct(user),
+	})
+}
+
+func revokeAssignedAi(c *gin.Context) {
+	basecontestID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(400, gin.H{})
+		return
+	}
+	userID := c.MustGet("userID").(int)
+	preloads := []model.PreloadQuery{
+		{
+			Table:   "User",
+			Columns: []string{},
+		},
+		{
+			Table:   "AssignedAi",
+			Columns: []string{},
+		},
+	}
+	contestant, err := model.GetContestant(map[string]interface{}{"user_id": userID, "base_contest_id": basecontestID}, preloads)
+	if err != nil {
+		c.JSON(404, gin.H{})
+		return
+	}
+
+	contestant.AssignedAiID = 0
+	err = model.UpdateContestantByID(contestant.ID, map[string]interface{}{
+		"assigned_ai_id": 0,
+	})
+	if err != nil {
+		c.JSON(404, gin.H{})
+		return
+	}
+
+	c.JSON(200, gin.H{})
+}
+
+func getMatches(c *gin.Context) {
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	offset, _ := strconv.Atoi(c.Query("offset"))
+
+	queryParams := model.QueryParams{
+		Filter: map[string]interface{}{},
+		Offset: offset,
+		Limit:  limit,
+	}
+
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(400, gin.H{})
+		return
+	}
+	baseContest, err := model.GetBaseContestByID(uint(id))
+	if err != nil {
+		c.JSON(404, gin.H{})
+		return
+	}
+
+	matches, count, err := baseContest.GetMatches(queryParams, true)
+	if err != nil {
+		c.JSON(404, gin.H{})
+		return
+	}
+
+	var matchList []map[string]interface{}
+	for _, match := range matches {
+		matchData := map[string]interface{}{
+			"id":      match.ID,
+			"tag":     match.Tag,
+			"players": match.Players,
+			"state":   match.State,
+			"time":    match.CreatedAt,
+		}
+		matchList = append(matchList, matchData)
+	}
+
+	response := map[string]interface{}{
+		"count": count,
+		"data":  matchList,
+	}
+	c.JSON(200, response)
+}
+
+func getMatch(c *gin.Context) {
+	inmatchID := c.Param("match_id")
+	matchID, _ := strconv.Atoi(inmatchID)
+
+	aimMatch, err := model.GetMatchByID(uint(matchID), true)
+	if err != nil {
+		c.JSON(400, gin.H{"error": "Match not found"})
+		return
+	}
+
+	// Construct the base path for the replay file
+	replayFilePath := fmt.Sprintf("/var/hiper/matches/%d/replay", matchID)
+	fileDir := "/var/hiper/matches/"
+	var fileName string
+
+	// Search for the file with the correct ai_id and extension
+	err = filepath.Walk(fileDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if strings.HasPrefix(path, replayFilePath) {
+			fileName = path
+			return nil
+		}
+
+		return nil
+	})
+
+	var fileContent string
+	if err != nil {
+		// Read the file content
+		fileContentBytes, err := os.ReadFile(fileName)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read AI file"})
+			return
+		}
+		// Convert file content to string
+		fileContent = string(fileContentBytes)
+	} else {
+		fileContent = ""
+	}
+
+	c.JSON(200, gin.H{
+		"id":      aimMatch.ID,
+		"tag":     aimMatch.Tag,
+		"state":   aimMatch.State,
+		"time":    aimMatch.CreatedAt,
+		"players": aimMatch.Players,
+		"replay":  fileContent,
+	})
+}
+
+func getSdks(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(400, gin.H{})
+		return
+	}
+	baseContest, err := model.GetBaseContestByID(uint(id))
+	if err != nil {
+		c.JSON(404, gin.H{"error": "Game not found"})
+		return
+	}
+
+	sdks, err := baseContest.GetSdks()
+	if err != nil {
+		c.JSON(404, gin.H{})
+		return
+	}
+
+	var sdkList []gin.H
+	for _, sdk := range sdks {
+		sdkData := gin.H{
+			"id":     sdk.ID,
+			"name":   sdk.Name,
+			"readme": sdk.Readme,
+			"build_ai": map[string]string{
+				"status": string(sdk.BuildAi.Status.State),
+			},
+			"run_ai": map[string]string{
+				"status": string(sdk.RunAi.Status.State),
+			},
+		}
+		sdkList = append(sdkList, sdkData)
+	}
+
+	c.JSON(200, sdkList)
 }

@@ -29,12 +29,12 @@ func paginate(tx *gorm.DB, query QueryParams, result interface{}) (count int64, 
 	return count, nil
 }
 
-type preloadQuery struct {
+type PreloadQuery struct {
 	Table   string
 	Columns []string
 }
 
-func addPreloads(tx *gorm.DB, preloads []preloadQuery) *gorm.DB {
+func addPreloads(tx *gorm.DB, preloads []PreloadQuery) *gorm.DB {
 	for _, preload := range preloads {
 		tx = tx.Preload(preload.Table, func(db *gorm.DB) *gorm.DB {
 			return db.Select(preload.Columns)
