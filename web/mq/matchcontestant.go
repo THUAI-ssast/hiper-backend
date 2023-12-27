@@ -1,8 +1,9 @@
 package mq
 
 import (
-	"hiper-backend/model"
 	"sort"
+
+	"github.com/THUAI-ssast/hiper-backend/web/model"
 )
 
 func getContestantsByRanking(filter string, baseContestID uint) (contestants []model.Contestant, err error) {

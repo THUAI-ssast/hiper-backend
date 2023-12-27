@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"hiper-backend/model"
+	"github.com/THUAI-ssast/hiper-backend/web/model"
 )
 
 func grantCreationPermission(c *gin.Context) {

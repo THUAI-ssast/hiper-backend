@@ -1,9 +1,9 @@
 package mq
 
 import (
-	"hiper-backend/model"
-
 	"github.com/dop251/goja"
+
+	"github.com/THUAI-ssast/hiper-backend/web/model"
 )
 
 func CreateRuntimeWithJSFile(baseContestID uint) error {

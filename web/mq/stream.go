@@ -3,11 +3,12 @@ package mq
 import (
 	"context"
 	"fmt"
-	"hiper-backend/model"
 	"strconv"
 	"strings"
 
 	"github.com/redis/go-redis/v9"
+
+	"github.com/THUAI-ssast/hiper-backend/web/model"
 )
 
 func sendMsg(ctx context.Context, msg *Msg) error {

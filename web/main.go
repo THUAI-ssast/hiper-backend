@@ -1,13 +1,13 @@
 package main
 
 import (
-	"hiper-backend/api"
-	"hiper-backend/config"
-	"hiper-backend/model"
-	"hiper-backend/mq"
-
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
+
+	"github.com/THUAI-ssast/hiper-backend/web/api"
+	"github.com/THUAI-ssast/hiper-backend/web/config"
+	"github.com/THUAI-ssast/hiper-backend/web/model"
+	"github.com/THUAI-ssast/hiper-backend/web/mq"
 )
 
 func main() {

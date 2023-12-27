@@ -3,10 +3,11 @@ package mq
 import (
 	"context"
 	"fmt"
-	"hiper-backend/model"
 	"sync"
 
 	"github.com/dop251/goja"
+
+	"github.com/THUAI-ssast/hiper-backend/web/model"
 )
 
 var Ctx_callback = context.Background()
