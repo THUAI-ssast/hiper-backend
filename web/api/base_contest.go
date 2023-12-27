@@ -574,12 +574,17 @@ func getAis(c *gin.Context) {
 
 	var aiList []gin.H
 	for _, ai := range ais {
+		usr, err := model.GetUserByID(ai.UserID)
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Internal Server Error"})
+			return
+		}
 		aiData := gin.H{
 			"id":     ai.ID,
 			"sdk":    map[string]interface{}{"id": ai.SdkID, "name": ai.Sdk.Name},
 			"note":   ai.Note,
 			"status": basecontest.ConvertStruct(ai.Status),
-			"user":   basecontest.ConvertStruct(ai.User),
+			"user":   map[string]interface{}{"avater_url": usr.AvatarURL, "username": usr.Username, "nickname": usr.Nickname},
 			"time":   ai.CreatedAt,
 		}
 		aiList = append(aiList, aiData)

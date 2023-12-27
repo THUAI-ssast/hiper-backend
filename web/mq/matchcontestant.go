@@ -115,6 +115,12 @@ func AddMatch(playerIDs []uint, baseContestID uint, tag string, extraInfo map[st
 		score[1] = 1 - score[0]
 	}
 	match.Scores = score
+	ai1, _ := model.GetAiByID(playerIDs[0], false)
+	ai2, _ := model.GetAiByID(playerIDs[1], false)
+	c1, _ := model.GetContestant(map[string]interface{}{"base_contest_id": baseContestID, "user_id": ai1.UserID}, nil)
+	c2, _ := model.GetContestant(map[string]interface{}{"base_contest_id": baseContestID, "user_id": ai2.UserID}, nil)
+	model.UpdateContestantByID(c1.ID, map[string]interface{}{"points": c1.Points + score[0]})
+	model.UpdateContestantByID(c2.ID, map[string]interface{}{"points": c2.Points + score[1]})
 	//TODO:DELETE!
 
 	err = match.Create(playerIDs)
