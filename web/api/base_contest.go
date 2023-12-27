@@ -21,7 +21,25 @@ import (
 func deleteGame(c *gin.Context) {
 	ingameID := c.MustGet("gameID").(int)
 	gameID := uint(ingameID)
-	err := model.DeleteBaseContestByID(gameID)
+	baseContest, err := model.GetBaseContestByID(gameID)
+	if err != nil {
+		c.JSON(400, gin.H{"error": "Game/Contest not found"})
+		return
+	}
+	if baseContest.GameID != baseContest.ID {
+		err := model.DeleteContestByID(gameID)
+		if err != nil {
+			c.JSON(400, gin.H{"error": "Contest not found"})
+			return
+		}
+	} else {
+		err := model.DeleteGameByID(baseContest.GameID)
+		if err != nil {
+			c.JSON(400, gin.H{"error": "Game not found"})
+			return
+		}
+	}
+	err = model.DeleteBaseContestByID(gameID)
 	if err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		c.Abort()
