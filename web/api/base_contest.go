@@ -898,11 +898,10 @@ func getContestants(c *gin.Context) {
 		}
 
 		aiid := contestant.AssignedAiID
-		ai, err := model.GetAiByID(uint(aiid), true)
-		if err != nil {
-			c.JSON(400, gin.H{})
-			return
-		}
+		ai, _ := model.GetAiByID(uint(aiid), true)
+		ai.User.AvatarURL = user.AvatarURL
+		ai.User.Username = user.Username
+		ai.User.Nickname = user.Nickname
 
 		contestantData := gin.H{
 			"assigned_ai": basecontest.ConvertStruct(ai),
@@ -936,7 +935,9 @@ func assignAi(c *gin.Context) {
 			BaseContestID: baseContest.ID,
 			UserID:        uint(userID),
 		}
+
 		err = contestant.Create()
+
 		if err != nil {
 			c.JSON(500, gin.H{"error": "failed to register Contest"})
 			c.Abort()
@@ -976,7 +977,7 @@ func assignAi(c *gin.Context) {
 	})
 
 	c.JSON(200, gin.H{})
-	mq.CallOnAIAssigned(contestant)
+	//mq.CallOnAIAssigned(contestant)
 }
 
 func getCurrentContestant(c *gin.Context) {
