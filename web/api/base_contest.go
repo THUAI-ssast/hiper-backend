@@ -412,6 +412,9 @@ func getTheGame(c *gin.Context) {
 			break
 		}
 	}
+	if baseContest.GameID == baseContest.ID {
+		isRegistered = true
+	}
 	pri := "unregistered"
 	if isRegistered {
 		pri = "registered"
