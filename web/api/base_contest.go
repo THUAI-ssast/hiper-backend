@@ -460,29 +460,53 @@ func getTheGame(c *gin.Context) {
 		c.JSON(500, gin.H{})
 		return
 	}
+	if baseContest.GameID != uint(id) {
+		game, err := model.GetGameByID(baseContest.GameID)
 
-	game, err := model.GetGameByID(baseContest.GameID)
+		if err != nil {
+			c.JSON(404, gin.H{})
+			return
+		}
 
-	if err != nil {
-		c.JSON(404, gin.H{})
-		return
+		c.JSON(200, gin.H{
+			"base_contest": map[string]interface{}{
+				"id":      baseContest.ID,
+				"game_id": baseContest.GameID,
+				"states":  baseContest.States,
+				"my":      basecontest.ConvertStruct(contestant),
+			},
+			"id":           baseContest.ID,
+			"my_privilege": pri,
+			"metadata": map[string]interface{}{
+				"cover_url": game.Metadata.CoverUrl,
+				"readme":    game.Metadata.Readme,
+				"title":     game.Metadata.Title,
+			},
+		})
+	} else {
+		contest, err := model.GetContestByID(uint(id))
+
+		if err != nil {
+			c.JSON(404, gin.H{})
+			return
+		}
+
+		c.JSON(200, gin.H{
+			"base_contest": map[string]interface{}{
+				"id":      baseContest.ID,
+				"game_id": baseContest.GameID,
+				"states":  baseContest.States,
+				"my":      basecontest.ConvertStruct(contestant),
+			},
+			"id":           baseContest.ID,
+			"my_privilege": pri,
+			"metadata": map[string]interface{}{
+				"cover_url": contest.Metadata.CoverUrl,
+				"readme":    contest.Metadata.Readme,
+				"title":     contest.Metadata.Title,
+			},
+		})
 	}
-
-	c.JSON(200, gin.H{
-		"base_contest": map[string]interface{}{
-			"id":      baseContest.ID,
-			"game_id": baseContest.GameID,
-			"states":  baseContest.States,
-			"my":      basecontest.ConvertStruct(contestant),
-		},
-		"id":           baseContest.ID,
-		"my_privilege": pri,
-		"metadata": map[string]interface{}{
-			"cover_url": game.Metadata.CoverUrl,
-			"readme":    game.Metadata.Readme,
-			"title":     game.Metadata.Title,
-		},
-	})
 }
 
 func getAis(c *gin.Context) {
