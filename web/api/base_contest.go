@@ -352,6 +352,28 @@ func updateGameStates(c *gin.Context) {
 	updates := make(map[string]interface{})
 	if input.AssignAiEnabled != nil {
 		updates["assign_ai_enabled"] = input.AssignAiEnabled
+		basecontest, err := model.GetBaseContestByID(gameID)
+		if err != nil {
+			c.JSON(422, gin.H{"error": ErrorFor422{
+				Code:  Invalid,
+				Field: "cannot update game states",
+			}})
+			c.Abort()
+			return
+		}
+		if basecontest.GameID != basecontest.ID {
+			err = model.UpdateContestByID(basecontest.ID, map[string]interface{}{
+				"registration_enabled": input.AssignAiEnabled,
+			})
+			if err != nil {
+				c.JSON(422, gin.H{"error": ErrorFor422{
+					Code:  Invalid,
+					Field: "cannot update contest states",
+				}})
+				c.Abort()
+				return
+			}
+		}
 	}
 	if input.CommitAiEnabled != nil {
 		updates["commit_ai_enabled"] = input.CommitAiEnabled
