@@ -2,10 +2,6 @@ package api
 
 import (
 	"fmt"
-	"hiper-backend/basecontest"
-	"hiper-backend/game"
-	"hiper-backend/model"
-	"hiper-backend/mq"
 	"mime"
 	"mime/multipart"
 	"net/http"
@@ -15,6 +11,11 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/THUAI-ssast/hiper-backend/web/basecontest"
+	"github.com/THUAI-ssast/hiper-backend/web/game"
+	"github.com/THUAI-ssast/hiper-backend/web/model"
+	"github.com/THUAI-ssast/hiper-backend/web/mq"
 )
 
 func deleteGame(c *gin.Context) {

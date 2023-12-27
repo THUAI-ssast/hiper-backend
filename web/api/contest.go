@@ -1,13 +1,14 @@
 package api
 
 import (
-	"hiper-backend/basecontest"
-	"hiper-backend/contest"
-	"hiper-backend/model"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/THUAI-ssast/hiper-backend/web/basecontest"
+	"github.com/THUAI-ssast/hiper-backend/web/contest"
+	"github.com/THUAI-ssast/hiper-backend/web/model"
 )
 
 func createContest(c *gin.Context) {

@@ -1,4 +1,4 @@
-module hiper-backend
+module github.com/THUAI-ssast/hiper-backend/web
 
 go 1.21
 

@@ -3,7 +3,7 @@ package user
 import (
 	"github.com/spf13/viper"
 
-	"hiper-backend/model"
+	"github.com/THUAI-ssast/hiper-backend/web/model"
 )
 
 // UpsertSuperAdmin upserts the super admin user.
