@@ -460,7 +460,7 @@ func getTheGame(c *gin.Context) {
 		c.JSON(500, gin.H{})
 		return
 	}
-	if baseContest.GameID != uint(id) {
+	if baseContest.GameID == baseContest.ID {
 		game, err := model.GetGameByID(baseContest.GameID)
 
 		if err != nil {
