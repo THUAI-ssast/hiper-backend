@@ -1,6 +1,7 @@
 package mq
 
 import (
+	"fmt"
 	"math/rand"
 	"sort"
 
@@ -8,6 +9,7 @@ import (
 )
 
 func getContestantsByRanking(filter string, baseContestID uint) (contestants []model.Contestant, err error) {
+	fmt.Println("getContestantsByRanking-2")
 	baseContest, err := model.GetBaseContestByID(baseContestID)
 	if err != nil {
 		return nil, err

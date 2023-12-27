@@ -1,6 +1,8 @@
 package mq
 
 import (
+	"fmt"
+
 	"github.com/THUAI-ssast/hiper-backend/web/model"
 	"github.com/dop251/goja"
 	"github.com/dop251/goja_nodejs/eventloop"
@@ -119,6 +121,7 @@ func SetCreateMatch(baseContestID uint, vm *goja.Runtime) error {
 }
 
 func SetGetContestantsByRanking(baseContestID uint, vm *goja.Runtime) error {
+	fmt.Println("SetGetContestantsByRanking-0")
 	err := SetGoFuncForJS(baseContestID, "getContestantsByRanking", func(call goja.FunctionCall) goja.Value {
 		// 获取 filter 参数
 		filterVal := call.Argument(0)

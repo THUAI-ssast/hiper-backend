@@ -935,6 +935,7 @@ func assignAi(c *gin.Context) {
 			BaseContestID: baseContest.ID,
 			UserID:        uint(userID),
 		}
+		//TODO:Change
 
 		err = contestant.Create()
 
