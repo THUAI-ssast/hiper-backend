@@ -1,6 +1,7 @@
 package api
 
 import (
+	"hiper-backend/basecontest"
 	"hiper-backend/contest"
 	"hiper-backend/model"
 	"net/http"
@@ -258,7 +259,7 @@ func getContests(c *gin.Context) {
 				},
 			},
 			"id":       contest.ID,
-			"metadata": contest.Metadata,
+			"metadata": basecontest.ConvertStruct(contest.Metadata),
 		}
 		contestsList = append(contestsList, contestData)
 	}

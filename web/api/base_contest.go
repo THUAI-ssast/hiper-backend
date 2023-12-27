@@ -393,20 +393,31 @@ func getTheGame(c *gin.Context) {
 		return
 	}
 
-	// baseContest.GetPriviliege(uint(userID))
-	admins, err := baseContest.GetAdmins()
+	userID := c.MustGet("userID").(int)
+	user, err := model.GetUserByID(uint(userID))
 	if err != nil {
-		c.JSON(500, gin.H{})
+		c.JSON(400, gin.H{"error": "User not found"})
 		return
 	}
-
-	pri := "registered"
-	userID := c.MustGet("userID").(int)
-	for _, admin := range admins {
-		if admin.ID == uint(userID) {
-			pri = "admin"
+	isAdmin, _ := baseContest.IsAdmin(user.ID)
+	contests, err := user.GetContestRegistered()
+	if err != nil {
+		c.JSON(400, gin.H{"error": "contests not found"})
+		return
+	}
+	isRegistered := false
+	for _, contest := range contests {
+		if contest.ID == baseContest.ID {
+			isRegistered = true
 			break
 		}
+	}
+	pri := "unregistered"
+	if isRegistered {
+		pri = "registered"
+	}
+	if isAdmin {
+		pri = "admin"
 	}
 
 	preloads := []model.PreloadQuery{
@@ -460,7 +471,12 @@ func getAis(c *gin.Context) {
 		Offset: offset,
 	}
 	if username != "" {
-		queryParams.Filter["username"] = username
+		user, err := model.GetUserByUsername(username)
+		if err != nil {
+			c.JSON(404, gin.H{"error": "User not found"})
+			return
+		}
+		queryParams.Filter["user_id"] = user.ID
 	}
 
 	ais, _, err := model.GetAis(queryParams, true)
@@ -473,7 +489,7 @@ func getAis(c *gin.Context) {
 	for _, ai := range ais {
 		aiData := gin.H{
 			"id":     ai.ID,
-			"sdk":    basecontest.ConvertStruct(ai.Sdk),
+			"sdk":    map[string]interface{}{"id": ai.SdkID, "name": ai.Sdk.Name},
 			"note":   ai.Note,
 			"status": basecontest.ConvertStruct(ai.Status),
 			"user":   basecontest.ConvertStruct(ai.User),
@@ -568,6 +584,8 @@ func commitAi(c *gin.Context) {
 
 	ai := model.Ai{}
 	ai.BaseContestID = uint(gameID)
+	userid := c.MustGet("userID").(int)
+	ai.UserID = uint(userid)
 	ai.Create()
 
 	model.UpdateAiByID(ai.ID, map[string]interface{}{

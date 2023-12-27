@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"hiper-backend/basecontest"
 	"hiper-backend/game"
 	"hiper-backend/model"
 	"hiper-backend/mq"
@@ -157,7 +158,7 @@ func getGames(c *gin.Context) {
 				},
 			},
 			"id":       game.ID,
-			"metadata": game.Metadata,
+			"metadata": basecontest.ConvertStruct(game.Metadata),
 		}
 		gamesList = append(gamesList, gameData)
 	}
