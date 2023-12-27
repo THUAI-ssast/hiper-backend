@@ -928,6 +928,21 @@ func assignAi(c *gin.Context) {
 		c.JSON(400, gin.H{})
 		return
 	}
+	userID := c.MustGet("userID").(int)
+
+	if baseContest.GameID == baseContest.ID {
+		// 更新 Contestant
+		contestant := model.Contestant{
+			BaseContestID: baseContest.ID,
+			UserID:        uint(userID),
+		}
+		err = contestant.Create()
+		if err != nil {
+			c.JSON(500, gin.H{"error": "failed to register Contest"})
+			c.Abort()
+			return
+		}
+	}
 
 	preloads := []model.PreloadQuery{
 		{
@@ -939,7 +954,6 @@ func assignAi(c *gin.Context) {
 			Columns: []string{},
 		},
 	}
-	userID := c.MustGet("userID").(int)
 	contestant, err := baseContest.GetContestantByUserID(uint(userID), preloads)
 	if err != nil {
 		c.JSON(400, gin.H{})
