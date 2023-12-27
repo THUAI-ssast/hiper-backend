@@ -68,7 +68,7 @@ func WarnCode() {
 			// 将数组转换为 goja.Value
 			return vm.ToValue(arr)
 		}
-		vm.Set("getContestantsByRanking", GetFunc)
+		vm.Set("gett", GetFunc)
 		SetFunc := func(call goja.FunctionCall) goja.Value {
 			match := model.Match{BaseContestID: baseContestID}
 			//TODO:DELETE!
@@ -88,7 +88,7 @@ func WarnCode() {
 			match.Create([]uint{uint(1), uint(2)})
 			return goja.Undefined()
 		}
-		vm.Set("createMatch", SetFunc)
+		vm.Set("createe", SetFunc)
 		_, err = vm.RunString(script)
 	})
 	if err != nil {
