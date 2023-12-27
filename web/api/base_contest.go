@@ -153,7 +153,7 @@ func updateGameScript(c *gin.Context) {
 
 func updateGameMetadata(c *gin.Context) {
 	ingameID := c.MustGet("gameID").(int)
-	gameID := uint(ingameID)
+	baseContestID := uint(ingameID)
 	var input struct {
 		CoverURL string `json:"cover_url"`
 		Readme   string `json:"readme"`
@@ -164,7 +164,18 @@ func updateGameMetadata(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	err := model.UpdateBaseContestByID(gameID, map[string]interface{}{
+	basecontest, err := model.GetBaseContestByID(baseContestID)
+	if err != nil {
+		c.JSON(422, gin.H{"error": ErrorFor422{
+			Code:  Invalid,
+			Field: "cannot get game",
+		}})
+		c.Abort()
+		return
+	}
+	gameID := basecontest.GameID
+
+	err = model.UpdateGameByID(gameID, map[string]interface{}{
 		"cover_url": input.CoverURL,
 		"readme":    input.Readme,
 		"title":     input.Title,
@@ -214,6 +225,7 @@ func addSdk(c *gin.Context) {
 	}
 
 	// 获取文件的扩展名
+	fmt.Println(input.Sdk.Filename)
 	fileExt := filepath.Ext(input.Sdk.Filename)
 
 	// 使用文件的扩展名构造文件路径
