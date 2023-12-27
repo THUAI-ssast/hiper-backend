@@ -598,16 +598,16 @@ func commitAi(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to reset file read pointer"})
 		return
 	}
+	var extension string
 
 	// Map MIME type to file extension
 	exts, err := mime.ExtensionsByType(contentType)
 	if err != nil || len(exts) == 0 {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to determine file extension"})
-		return
+		extension = ".zip"
 	}
 
 	// Use the first extension returned by the mime package
-	extension := exts[0]
+	extension = exts[0]
 
 	// Construct file path
 	aiFilePath := fmt.Sprintf("/var/hiper/ais/%d/src%s", ai.ID, extension)
@@ -795,11 +795,11 @@ func getContestants(c *gin.Context) {
 		}
 
 		contestantData := gin.H{
-			"assigned_ai": ai,
+			"assigned_ai": basecontest.ConvertStruct(ai),
 			"performance": contestant.Performance,
-			"permissions": contestant.Permissions,
+			"permissions": basecontest.ConvertStruct(contestant.Permissions),
 			"points":      contestant.Points,
-			"user":        user,
+			"user":        basecontest.ConvertStruct(user),
 		}
 		contestantList = append(contestantList, contestantData)
 	}
@@ -856,8 +856,12 @@ func assignAi(c *gin.Context) {
 }
 
 func getCurrentContestant(c *gin.Context) {
-	contestantIDs, _ := c.Get("contestantID") //
-	contestantID, _ := contestantIDs.(int)
+	basecontestID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(400, gin.H{})
+		return
+	}
+	userID := c.MustGet("userID").(int)
 	preloads := []model.PreloadQuery{
 		{
 			Table:   "User",
@@ -867,12 +871,8 @@ func getCurrentContestant(c *gin.Context) {
 			Table:   "AssignedAi",
 			Columns: []string{},
 		},
-		{
-			Table:   "Contestant",
-			Columns: []string{},
-		},
 	}
-	contestant, err := model.GetContestantByID((uint)(contestantID), preloads)
+	contestant, err := model.GetContestant(map[string]interface{}{"user_id": userID, "base_contest_id": basecontestID}, preloads)
 	if err != nil {
 		c.JSON(400, gin.H{})
 		return
@@ -893,17 +893,21 @@ func getCurrentContestant(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{
-		"assigned_ai": ai,
+		"assigned_ai": basecontest.ConvertStruct(ai),
 		"performance": contestant.Performance,
-		"permissions": contestant.Permissions,
+		"permissions": basecontest.ConvertStruct(contestant.Permissions),
 		"points":      contestant.Points,
-		"user":        user,
+		"user":        basecontest.ConvertStruct(user),
 	})
 }
 
 func revokeAssignedAi(c *gin.Context) {
-	contestantIDs, _ := c.Get("contestantID") //
-	contestantID, _ := contestantIDs.(int)
+	basecontestID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(400, gin.H{})
+		return
+	}
+	userID := c.MustGet("userID").(int)
 	preloads := []model.PreloadQuery{
 		{
 			Table:   "User",
@@ -913,19 +917,21 @@ func revokeAssignedAi(c *gin.Context) {
 			Table:   "AssignedAi",
 			Columns: []string{},
 		},
-		{
-			Table:   "Contestant",
-			Columns: []string{},
-		},
 	}
-	contestant, err := model.GetContestantByID((uint)(contestantID), preloads)
+	contestant, err := model.GetContestant(map[string]interface{}{"user_id": userID, "base_contest_id": basecontestID}, preloads)
 	if err != nil {
 		c.JSON(404, gin.H{})
 		return
 	}
 
-	contestant.AssignedAi = model.Ai{}
 	contestant.AssignedAiID = 0
+	err = model.UpdateContestantByID(contestant.ID, map[string]interface{}{
+		"assigned_ai_id": 0,
+	})
+	if err != nil {
+		c.JSON(404, gin.H{})
+		return
+	}
 
 	c.JSON(200, gin.H{})
 }
