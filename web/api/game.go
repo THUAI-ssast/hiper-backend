@@ -11,7 +11,6 @@ import (
 	"github.com/THUAI-ssast/hiper-backend/web/basecontest"
 	"github.com/THUAI-ssast/hiper-backend/web/game"
 	"github.com/THUAI-ssast/hiper-backend/web/model"
-	"github.com/THUAI-ssast/hiper-backend/web/mq"
 )
 
 func createGame(c *gin.Context) {
@@ -205,7 +204,6 @@ func updateGameLogic(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	mq.InitGameMq(gameID)
 	game.RetGameSettings(c)
 }
 

@@ -1,6 +1,7 @@
 package mq
 
 import (
+	"math/rand"
 	"sort"
 
 	"github.com/THUAI-ssast/hiper-backend/web/model"
@@ -50,15 +51,17 @@ func createMatch(contestantsjs []interface{}, options map[string]interface{}, ba
 	Ais := []uint{}
 	for _, contestantjs := range contestantsjs {
 		contestantjsm := contestantjs.(map[string]interface{})
-		contestantID := uint(contestantjsm["id"].(float64))
-		contestant, err := model.GetContestantByID(contestantID, nil)
-		if err != nil {
-			return err
-		}
-		Ais = append(Ais, contestant.AssignedAi.ID)
+		Ais = append(Ais, contestantjsm["assignedAiId"].(uint))
 	}
-	tag := options["tag"].(string)
-	extraInfo := options["extraInfo"].(map[string]interface{})
+	tag, ok := options["tag"].(string)
+	if !ok {
+		tag = ""
+	}
+
+	extraInfo, ok := options["extraInfo"].(map[string]interface{})
+	if !ok {
+		extraInfo = make(map[string]interface{})
+	}
 	_, err = AddMatch(Ais, baseContestID, tag, extraInfo)
 	return err
 }
@@ -104,6 +107,16 @@ func updateContestant(contestantjs interface{}, body map[string]interface{}, bas
 
 func AddMatch(playerIDs []uint, baseContestID uint, tag string, extraInfo map[string]interface{}) (matchID uint, err error) {
 	match := model.Match{BaseContestID: baseContestID, Tag: tag}
+	//TODO:DELETE!
+	// 生成随机的 score
+	score := []int{rand.Intn(2), rand.Intn(2)}
+	// 确保 score 是 [0, 1] 或 [1, 0]
+	if score[0] == score[1] {
+		score[1] = 1 - score[0]
+	}
+	match.Scores = score
+	//TODO:DELETE!
+
 	err = match.Create(playerIDs)
 	if err != nil {
 		return 0, err

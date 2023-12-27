@@ -563,6 +563,7 @@ func getAis(c *gin.Context) {
 			return
 		}
 		queryParams.Filter["user_id"] = user.ID
+		queryParams.Filter["base_contest_id"] = c.Param("id")
 	}
 
 	ais, _, err := model.GetAis(queryParams, true)

@@ -28,7 +28,10 @@ func (m *Match) Create(playerIDs []uint) error {
 	}
 
 	for _, id := range playerIDs {
-		player := Ai{Model: gorm.Model{ID: id}}
+		player := Ai{}
+		if err := db.First(&player, id).Error; err != nil {
+			return err
+		}
 		m.Players = append(m.Players, player)
 	}
 

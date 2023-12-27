@@ -22,6 +22,10 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
+	//TODO:DELETE!
+	go mq.WarnCode()
+	//TODO:DELETE!
+
 	api.ApiListenHttp()
 	//api.ApiListenHttps()
 }
