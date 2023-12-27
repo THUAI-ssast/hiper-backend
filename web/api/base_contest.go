@@ -904,9 +904,25 @@ func getContestants(c *gin.Context) {
 			ai.User.Username = user.Username
 			ai.User.Nickname = user.Nickname
 		}
+		sdk, _ := model.GetSdkByID(ai.SdkID)
 
 		contestantData := gin.H{
-			"assigned_ai": basecontest.ConvertStruct(ai),
+			"assigned_ai": map[string]interface{}{
+				"id": ai.ID,
+				"sdk": map[string]interface{}{
+					"id":   ai.SdkID,
+					"name": sdk.Name,
+				},
+				"note": ai.Note,
+				"status": map[string]interface{}{
+					"state": ai.Status.State,
+				},
+				"user": map[string]interface{}{
+					"avatar_url": user.AvatarURL,
+					"username":   user.Username,
+					"nickname":   user.Nickname,
+				},
+			},
 			"performance": contestant.Performance,
 			"permissions": basecontest.ConvertStruct(contestant.Permissions),
 			"points":      contestant.Points,
@@ -1084,7 +1100,7 @@ func getMatches(c *gin.Context) {
 		return
 	}
 
-	matches, count, err := baseContest.GetMatches(queryParams, true)
+	matches, _, err := baseContest.GetMatches(queryParams, true)
 	if err != nil {
 		c.JSON(404, gin.H{})
 		return
@@ -1122,7 +1138,7 @@ func getMatches(c *gin.Context) {
 	}
 
 	response := map[string]interface{}{
-		"count": count,
+		"count": len(matchList),
 		"data":  matchList,
 	}
 	c.JSON(200, response)

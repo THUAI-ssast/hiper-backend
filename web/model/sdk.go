@@ -27,6 +27,20 @@ func (s *Sdk) Update(updates map[string]interface{}) error {
 	return db.Model(s).Updates(updates).Error
 }
 
+func getSdk(condition map[string]interface{}, fields ...string) (Sdk, error) {
+	var sdk Sdk
+	db := db.Where(condition)
+	if len(fields) > 0 {
+		db = db.Select(fields)
+	}
+	err := db.First(&sdk).Error
+	return sdk, err
+}
+
+func GetSdkByID(id uint, fields ...string) (Sdk, error) {
+	return getSdk(map[string]interface{}{"id": id}, fields...)
+}
+
 // CRUD: Delete
 
 func DeleteSdkByID(id uint) error {
