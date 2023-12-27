@@ -898,10 +898,12 @@ func getContestants(c *gin.Context) {
 		}
 
 		aiid := contestant.AssignedAiID
-		ai, _ := model.GetAiByID(uint(aiid), true)
-		ai.User.AvatarURL = user.AvatarURL
-		ai.User.Username = user.Username
-		ai.User.Nickname = user.Nickname
+		ai, err := model.GetAiByID(uint(aiid), true)
+		if err != nil {
+			ai.User.AvatarURL = user.AvatarURL
+			ai.User.Username = user.Username
+			ai.User.Nickname = user.Nickname
+		}
 
 		contestantData := gin.H{
 			"assigned_ai": basecontest.ConvertStruct(ai),
@@ -938,7 +940,6 @@ func assignAi(c *gin.Context) {
 		//TODO:Change
 
 		err = contestant.Create()
-
 		if err != nil {
 			c.JSON(500, gin.H{"error": "failed to register Contest"})
 			c.Abort()
@@ -978,7 +979,7 @@ func assignAi(c *gin.Context) {
 	})
 
 	c.JSON(200, gin.H{})
-	//mq.CallOnAIAssigned(contestant)
+	mq.CallOnAIAssigned(contestant)
 }
 
 func getCurrentContestant(c *gin.Context) {
@@ -1091,10 +1092,30 @@ func getMatches(c *gin.Context) {
 
 	var matchList []map[string]interface{}
 	for _, match := range matches {
+		var players []map[string]interface{}
+		for _, player := range match.Players {
+			ai, _ := model.GetAiByID(player.ID, true)
+			userid := ai.UserID
+			user, _ := model.GetUserByID(userid)
+			contestant, _ := model.GetContestant(map[string]interface{}{"user_id": userid, "base_contest_id": baseContest.ID}, nil)
+			playerData := map[string]interface{}{
+				"ai": map[string]interface{}{
+					"id": player.ID,
+				},
+				"score": contestant.Points,
+				"user": map[string]interface{}{
+					"avater_url": user.AvatarURL,
+					"username":   user.Username,
+					"nickname":   user.Nickname,
+				},
+			}
+			players = append(players, playerData)
+		}
+
 		matchData := map[string]interface{}{
 			"id":      match.ID,
 			"tag":     match.Tag,
-			"players": match.Players,
+			"players": players,
 			"state":   match.State,
 			"time":    match.CreatedAt,
 		}
@@ -1156,7 +1177,7 @@ func getMatch(c *gin.Context) {
 		"tag":     aimMatch.Tag,
 		"state":   aimMatch.State,
 		"time":    aimMatch.CreatedAt,
-		"players": aimMatch.Players,
+		"players": basecontest.ConvertStruct(aimMatch.Players),
 		"replay":  fileContent,
 	})
 }

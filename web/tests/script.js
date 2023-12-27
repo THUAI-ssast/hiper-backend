@@ -1,3 +1,23 @@
-/*
-setInterval(() => { \r\n    contestants = getContestantsByRanking(\"survived\");\r\n    print(contestants[0].username);\r\n    for (let i = 0; i < contestants.length; i++) {\r\n        for (let j = i + 1; j < contestants.length; j++) {\r\n            createMatch([contestants[i], contestants[j]]);\r\n        }\r\n    }\r\n    print(\"Match!\");\r\n}, 3 * 1000);\r\n\r\nfunction onAiAssigned(contestant) {\r\n\r\n}\r\n\r\nfunction getContestantsByRanking(ranking) { }\r\nfunction createMatch(contestants) { }\r\nfunction updateContestant(contestant, data) { }\r\n\r\nfunction onMatchFinished(players, tag, replay) {\r\n    players.forEach(player => {\r\n        let newPoints = player.contestant.points + player.score;\r\n        updateContestant(player.contestant, { \"points\": newPoints });\r\n    });\r\n}\r\n
-*/
+print("Hello, world!");
+setInterval(() => {
+    print("aaa")
+    let contestants = getContestantsByRanking("survived");
+    for (let i = 0; i < contestants.length; i++) {
+        for (let j = i + 1; j < contestants.length; j++) {
+            print("create!");
+            createMatch([contestants[i], contestants[j]]);
+        }
+    }
+}, 5 * 1000);
+
+function onAiAssigned(contestant) {
+
+}
+
+
+function onMatchFinished(players, tag, replay) {
+    players.forEach(player => {
+        let newPoints = player.contestant.points + player.score;
+        updateContestant(player.contestant, { "points": newPoints });
+    });
+}
