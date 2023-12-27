@@ -604,10 +604,9 @@ func commitAi(c *gin.Context) {
 	exts, err := mime.ExtensionsByType(contentType)
 	if err != nil || len(exts) == 0 {
 		extension = ".zip"
+	} else {
+		extension = exts[0]
 	}
-
-	// Use the first extension returned by the mime package
-	extension = exts[0]
 
 	// Construct file path
 	aiFilePath := fmt.Sprintf("/var/hiper/ais/%d/src%s", ai.ID, extension)
