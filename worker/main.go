@@ -29,14 +29,14 @@ func main() {
 			task.Build(values)
 			repository.UpdateBuildState(values, model.TaskStateFinished)
 		case "manual_match", "auto_match":
-			match_id_int, err := strconv.Atoi(values["id"].(string))
+			matchIDInt, err := strconv.Atoi(values["id"].(string))
 			if err != nil {
 				log.Fatal(err)
 			}
-			match_id := uint(match_id_int)
-			repository.UpdateMatchState(match_id, model.TaskStateRunning)
-			task.Match(match_id)
-			repository.UpdateMatchState(match_id, model.TaskStateFinished)
+			matchID := uint(matchIDInt)
+			repository.UpdateMatchState(matchID, model.TaskStateRunning)
+			task.Match(matchID)
+			repository.UpdateMatchState(matchID, model.TaskStateFinished)
 		}
 
 		if err := mq.AckTask(stream); err != nil {
