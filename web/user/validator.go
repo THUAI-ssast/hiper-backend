@@ -1,9 +1,10 @@
 package user
 
 import (
-	"hiper-backend/model"
 	"net/url"
 	"regexp"
+
+	"github.com/THUAI-ssast/hiper-backend/model"
 )
 
 func IsCodeMatch(code string, email string) bool {

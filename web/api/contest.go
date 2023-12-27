@@ -1,13 +1,14 @@
 package api
 
 import (
-	"hiper-backend/contest"
-	"hiper-backend/model"
-	"hiper-backend/mq"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/THUAI-ssast/hiper-backend/basecontest"
+	"github.com/THUAI-ssast/hiper-backend/contest"
+	"github.com/THUAI-ssast/hiper-backend/model"
 )
 
 func createContest(c *gin.Context) {
@@ -36,6 +37,7 @@ func createContest(c *gin.Context) {
 	}
 	tempContest := model.Contest{}
 	if input.NewAdminUsername == "" {
+		tempContest.RegisteredUsers = append(tempContest.RegisteredUsers, usr)
 		err = tempContest.Create(input.GameID, []uint{userID})
 	} else {
 		newAdmin, err := model.GetUserByUsername(input.NewAdminUsername)
@@ -47,6 +49,7 @@ func createContest(c *gin.Context) {
 			c.Abort()
 			return
 		}
+		tempContest.RegisteredUsers = append(tempContest.RegisteredUsers, newAdmin)
 		err = tempContest.Create(input.GameID, []uint{newAdmin.ID})
 		if err != nil {
 			c.JSON(500, gin.H{"error": "failed to create Contest"})
@@ -59,7 +62,6 @@ func createContest(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	mq.SendBuildContestMsg(model.Ctx, tempContest.ID)
 	c.JSON(200, gin.H{"id": tempContest.ID})
 	c.Abort()
 }
@@ -113,7 +115,19 @@ func registerContest(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	c.JSON(200, gin.H{"id": contest.ID})
+
+	// 更新 Contestant
+	contestant := model.Contestant{
+		BaseContestID: contest.ID,
+		UserID:        usr.ID,
+	}
+	err = contestant.Create()
+	if err != nil {
+		c.JSON(500, gin.H{"error": "failed to register Contest"})
+		c.Abort()
+		return
+	}
+	c.JSON(200, gin.H{})
 }
 
 func exitContest(c *gin.Context) {
@@ -236,8 +250,8 @@ func getContests(c *gin.Context) {
 		}
 		contestData := gin.H{
 			"base_contest": gin.H{
-				"id":         contest.ID,
-				"Contest_id": contest.BaseContest.GameID,
+				"id":      contest.ID,
+				"game_id": contest.BaseContest.GameID,
 				"states": gin.H{
 					"assign_ai_enabled":                  contest.BaseContest.States.AssignAiEnabled,
 					"commit_ai_enabled":                  contest.BaseContest.States.CommitAiEnabled,
@@ -248,7 +262,7 @@ func getContests(c *gin.Context) {
 				},
 			},
 			"id":       contest.ID,
-			"metadata": contest.Metadata,
+			"metadata": basecontest.ConvertStruct(contest.Metadata),
 		}
 		contestsList = append(contestsList, contestData)
 	}

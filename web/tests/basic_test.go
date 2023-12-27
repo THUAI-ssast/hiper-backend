@@ -1,11 +1,12 @@
 package tests
 
 import (
-	"hiper-backend/user"
 	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/THUAI-ssast/hiper-backend/user"
 )
 
 func TestUserBasicFunc(t *testing.T) {

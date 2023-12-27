@@ -24,7 +24,6 @@ func ApiListenHttp() {
 	addGameRoutes(r)
 	addContestRoutes(r)
 	addBaseContestRoutes(r)
-	// TODO: add more routes
 
 	r.Run(":8080")
 }
@@ -36,7 +35,8 @@ func ApiListenHttps() {
 	addUserRoutes(r)
 	addPermissionRoutes(r)
 	addGameRoutes(r)
-	// TODO: add more routes
+	addContestRoutes(r)
+	addBaseContestRoutes(r)
 
 	//请使用开发文档中的web-获取ssl证书来获得证书并将本地路径填入config中
 	r.RunTLS(":8080", viper.GetString("net.certpath"), viper.GetString("net.keypath"))
@@ -128,6 +128,12 @@ func addBaseContestRoutes(r *gin.Engine) {
 			auth.GET("/games/:id/ais/:ai_id/file", downloadTheAI)
 			auth.PUT("/games/:id/ais/:ai_id/note", editAiNote)
 			auth.GET("/games/:id/contestants", getContestants)
+			auth.PUT("/games/:id/contestant/assigned_ai", assignAi)
+			auth.GET("/games/:id/contestant", getCurrentContestant)
+			auth.DELETE("/games/:id/contestant/assigned_ai", revokeAssignedAi)
+			auth.GET("/games/:id/matches", getMatches)
+			auth.GET("/games/:id/matches/:match_id", getMatch)
+			auth.GET("/games/:id/sdks", getSdks)
 			//此后的路由都需要验证是否是管理员.在其内部，我们可以使用gameID := c.MustGet("gameID").(int)来获取当前游戏的ID
 			auth = auth.Group("/", privilegeCheck())
 			{

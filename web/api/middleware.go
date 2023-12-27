@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"time"
 
-	"hiper-backend/model"
-
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
+
+	"github.com/THUAI-ssast/hiper-backend/model"
 )
 
 var mySecret = []byte("jwt")

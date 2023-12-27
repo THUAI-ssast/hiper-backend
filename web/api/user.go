@@ -6,9 +6,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"hiper-backend/mail"
-	"hiper-backend/model"
-	"hiper-backend/user"
+	"github.com/THUAI-ssast/hiper-backend/mail"
+	"github.com/THUAI-ssast/hiper-backend/model"
+	"github.com/THUAI-ssast/hiper-backend/user"
 )
 
 func requestVerificationCode(c *gin.Context) {

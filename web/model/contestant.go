@@ -31,7 +31,7 @@ func (c *Contestant) Create() error {
 
 // Sorted by points in descending order.
 // Currently supported preloads: "User", "AssignedAi"
-func GetContestants(filter map[string]interface{}, preloads []preloadQuery) ([]Contestant, error) {
+func GetContestants(filter map[string]interface{}, preloads []PreloadQuery) ([]Contestant, error) {
 	var contestants []Contestant
 	tx := db.Where(filter).Order("points DESC")
 	tx = addPreloads(tx, preloads)
@@ -39,12 +39,15 @@ func GetContestants(filter map[string]interface{}, preloads []preloadQuery) ([]C
 	return contestants, err
 }
 
-func GetContestant(condition map[string]interface{}, preloads []preloadQuery) (Contestant, error) {
+func GetContestant(condition map[string]interface{}, preloads []PreloadQuery) (Contestant, error) {
 	contestants, err := GetContestants(condition, preloads)
+	if len(contestants) == 0 {
+		return Contestant{}, err
+	}
 	return contestants[0], err
 }
 
-func GetContestantByID(id uint, preloads []preloadQuery) (Contestant, error) {
+func GetContestantByID(id uint, preloads []PreloadQuery) (Contestant, error) {
 	var contestant Contestant
 	tx := db.Where("id = ?", id)
 	tx = addPreloads(tx, preloads)

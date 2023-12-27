@@ -5,10 +5,10 @@ import (
 	"math/rand"
 	"strings"
 
-	"hiper-backend/mail"
-	"hiper-backend/model"
-
 	"github.com/gin-gonic/gin"
+
+	"github.com/THUAI-ssast/hiper-backend/mail"
+	"github.com/THUAI-ssast/hiper-backend/model"
 )
 
 func GenValidateCode(width int) string {

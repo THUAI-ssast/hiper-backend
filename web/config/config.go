@@ -7,7 +7,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
 
-	"hiper-backend/user"
+	"github.com/THUAI-ssast/hiper-backend/user"
 )
 
 // InitConfig initializes the configuration of the application

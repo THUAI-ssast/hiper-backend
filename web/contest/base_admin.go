@@ -1,9 +1,9 @@
 package contest
 
 import (
-	"hiper-backend/model"
-
 	"github.com/gin-gonic/gin"
+
+	"github.com/THUAI-ssast/hiper-backend/model"
 )
 
 type ErrorFor422 struct {

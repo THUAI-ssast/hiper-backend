@@ -2,10 +2,11 @@ package game
 
 import (
 	"errors"
-	"hiper-backend/model"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/THUAI-ssast/hiper-backend/model"
 )
 
 type ErrorFor422 struct {

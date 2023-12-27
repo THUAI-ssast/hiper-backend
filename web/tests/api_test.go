@@ -5,10 +5,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"hiper-backend/api"
-	"hiper-backend/config"
-	"hiper-backend/model"
-	"hiper-backend/user"
 	"io"
 	"log"
 	"mime/multipart"
@@ -21,6 +17,11 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/THUAI-ssast/hiper-backend/api"
+	"github.com/THUAI-ssast/hiper-backend/config"
+	"github.com/THUAI-ssast/hiper-backend/model"
+	"github.com/THUAI-ssast/hiper-backend/user"
 )
 
 var jwtToken string

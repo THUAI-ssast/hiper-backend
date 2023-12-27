@@ -1,12 +1,13 @@
 package main
 
 import (
-	"hiper-backend/api"
-	"hiper-backend/config"
-	"hiper-backend/model"
-
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
+
+	"github.com/THUAI-ssast/hiper-backend/api"
+	"github.com/THUAI-ssast/hiper-backend/config"
+	"github.com/THUAI-ssast/hiper-backend/model"
+	"github.com/THUAI-ssast/hiper-backend/mq"
 )
 
 func main() {
@@ -14,6 +15,7 @@ func main() {
 	model.InitDb()
 	model.AutoMigrateDb()
 	model.InitRedis()
+	mq.InitMq()
 	config.InitConfigAfter()
 
 	if !viper.GetBool("is_debug") {

@@ -1,13 +1,17 @@
 package api
 
 import (
-	"hiper-backend/game"
-	"hiper-backend/model"
-	"hiper-backend/mq"
+	"fmt"
+	"mime/multipart"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/THUAI-ssast/hiper-backend/basecontest"
+	"github.com/THUAI-ssast/hiper-backend/game"
+	"github.com/THUAI-ssast/hiper-backend/model"
+	"github.com/THUAI-ssast/hiper-backend/mq"
 )
 
 func createGame(c *gin.Context) {
@@ -58,7 +62,6 @@ func createGame(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	mq.SendBuildGameMsg(model.Ctx, tempGame.ID)
 	c.JSON(200, gin.H{"id": tempGame.ID})
 	c.Abort()
 }
@@ -126,7 +129,6 @@ func forkGame(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	mq.SendBuildGameMsg(model.Ctx, tempGame.ID)
 	c.JSON(200, gin.H{"id": tempGame.ID})
 	c.Abort()
 }
@@ -157,7 +159,7 @@ func getGames(c *gin.Context) {
 				},
 			},
 			"id":       game.ID,
-			"metadata": game.Metadata,
+			"metadata": basecontest.ConvertStruct(game.Metadata),
 		}
 		gamesList = append(gamesList, gameData)
 	}
@@ -173,14 +175,24 @@ func updateGameLogic(c *gin.Context) {
 	ingameID := c.MustGet("gameID").(int)
 	gameID := uint(ingameID)
 	var input struct {
-		BuildGameLogicDockerfile string `json:"build_game_logic_dockerfile"`
-		RunGameLogicDockerfile   string `json:"run_game_logic_dockerfile"`
+		BuildGameLogicDockerfile string                `form:"build_game_logic_dockerfile"`
+		RunGameLogicDockerfile   string                `form:"run_game_logic_dockerfile"`
+		GameLogicFile            *multipart.FileHeader `form:"game_logic_file"`
 	}
-	if err := c.ShouldBindJSON(&input); err != nil {
+	if err := c.ShouldBind(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		c.Abort()
 		return
 	}
+
+	// 保存上传的文件
+	filePath := fmt.Sprintf("/var/hiper/games/%d/game_logic/gamelogic.zip", gameID)
+	if err := c.SaveUploadedFile(input.GameLogicFile, filePath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.Abort()
+		return
+	}
+
 	err := model.UpdateGameByID(gameID, map[string]interface{}{
 		"game_logic_build_dockerfile": input.BuildGameLogicDockerfile,
 		"game_logic_run_dockerfile":   input.RunGameLogicDockerfile,
@@ -193,7 +205,7 @@ func updateGameLogic(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	mq.SendChangeGameMsg(model.Ctx, gameID)
+	mq.InitGameMq(gameID)
 	game.RetGameSettings(c)
 }
 

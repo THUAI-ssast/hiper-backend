@@ -145,11 +145,11 @@ func (bc *BaseContest) RemoveAdmin(userID uint) error {
 
 // Sorted by points in descending order.
 // Currently supported preloads: "User", "AssignedAi"
-func (bc *BaseContest) GetContestants(preloads []preloadQuery) ([]Contestant, error) {
+func (bc *BaseContest) GetContestants(preloads []PreloadQuery) ([]Contestant, error) {
 	return GetContestants(map[string]interface{}{"base_contest_id": bc.ID}, preloads)
 }
 
-func (bc *BaseContest) GetContestantByUserID(userID uint, preloads []preloadQuery) (Contestant, error) {
+func (bc *BaseContest) GetContestantByUserID(userID uint, preloads []PreloadQuery) (Contestant, error) {
 	return GetContestant(map[string]interface{}{"base_contest_id": bc.ID, "user_id": userID}, preloads)
 }
 
@@ -178,7 +178,7 @@ func (bc *BaseContest) GetMatches(query QueryParams, preload bool) ([]Match, int
 // sdk
 
 func (bc *BaseContest) GetSdks(fields ...string) (sdks []Sdk, err error) {
-	var tx *gorm.DB
+	tx := db
 	if len(fields) > 0 {
 		tx = db.Select(fields)
 	}

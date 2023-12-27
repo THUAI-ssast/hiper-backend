@@ -3,7 +3,7 @@ package user
 import (
 	"golang.org/x/crypto/bcrypt"
 
-	"hiper-backend/model"
+	"github.com/THUAI-ssast/hiper-backend/model"
 )
 
 // return: user id, is valid
