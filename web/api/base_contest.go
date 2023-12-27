@@ -1093,16 +1093,15 @@ func getMatches(c *gin.Context) {
 	var matchList []map[string]interface{}
 	for _, match := range matches {
 		var players []map[string]interface{}
-		for _, player := range match.Players {
+		for i, player := range match.Players {
 			ai, _ := model.GetAiByID(player.ID, true)
 			userid := ai.UserID
 			user, _ := model.GetUserByID(userid)
-			contestant, _ := model.GetContestant(map[string]interface{}{"user_id": userid, "base_contest_id": baseContest.ID}, nil)
 			playerData := map[string]interface{}{
 				"ai": map[string]interface{}{
 					"id": player.ID,
 				},
-				"score": contestant.Points,
+				"score": match.Scores[i],
 				"user": map[string]interface{}{
 					"avater_url": user.AvatarURL,
 					"username":   user.Username,
