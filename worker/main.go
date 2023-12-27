@@ -29,8 +29,7 @@ func main() {
 			task.Build(values)
 			repository.UpdateBuildState(values, model.TaskStateFinished)
 		case "manual_match", "auto_match":
-			match_id_str := values["match_id"].(string)
-			match_id_int, err := strconv.Atoi(match_id_str)
+			match_id_int, err := strconv.Atoi(values["id"].(string))
 			if err != nil {
 				log.Fatal(err)
 			}
