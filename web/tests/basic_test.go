@@ -5,8 +5,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
-	"github.com/THUAI-ssast/hiper-backend/web/user"
 )
 
 func TestBasicFunc(t *testing.T) {
@@ -18,20 +16,20 @@ func TestBasicFunc(t *testing.T) {
 func TestGenValidateCode(t *testing.T) {
 	// 测试生成的验证码长度
 	for i := 1; i <= 10; i++ {
-		s := user.GenValidateCode(i)
+		s := GenValidateCode(i)
 		assert.Equal(t, len(s), i)
 	}
 
 	// 测试生成的验证码是否只包含数字
 	for i := 1; i <= 10; i++ {
-		s := user.GenValidateCode(i)
+		s := GenValidateCode(i)
 		_, err := strconv.Atoi(s)
 		assert.Nil(t, err)
 	}
 
 	// 测试生成的验证码是否小于或等于最大值
 	for i := 1; i <= 6; i++ {
-		s := user.GenValidateCode(i)
+		s := GenValidateCode(i)
 		j, err := strconv.Atoi(s)
 		assert.Nil(t, err)
 		assert.LessOrEqual(t, j, 999999)
@@ -39,7 +37,7 @@ func TestGenValidateCode(t *testing.T) {
 
 	// 测试生成的验证码是否大于或等于最小值
 	for i := 1; i <= 10; i++ {
-		s := user.GenValidateCode(i)
+		s := GenValidateCode(i)
 		i, err := strconv.Atoi(s)
 		assert.Nil(t, err)
 		assert.GreaterOrEqual(t, i, 0)
@@ -69,7 +67,7 @@ func TestIsValidPassword(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got := user.IsValidPassword(tt.password)
+		got := IsValidPassword(tt.password)
 		assert.Equal(t, tt.want, got)
 	}
 }
@@ -98,7 +96,7 @@ func TestIsValidURL(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got := user.IsValidURL(tt.url)
+		got := IsValidURL(tt.url)
 		assert.Equal(t, tt.want, got)
 	}
 }
