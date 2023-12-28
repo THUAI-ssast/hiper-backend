@@ -1,6 +1,5 @@
 print("Hello, world!");
 setInterval(() => {
-    print("aaa")
     let contestants = getContestantsByRanking("survived");
     for (let i = 0; i < contestants.length; i++) {
         for (let j = i + 1; j < contestants.length; j++) {

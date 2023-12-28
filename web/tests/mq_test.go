@@ -10,9 +10,11 @@ import (
 	"github.com/dop251/goja"
 )
 
+//该测试不能直接运行，需新建Game：id=1及至少两个Contestant，并将script.js赋值给Gameid=1的script，此后在调试test中进行测试
+
 func TestInitGameMqAndRunScript(t *testing.T) {
 	// 设置 baseContestID
-	baseContestID := uint(2)
+	baseContestID := uint(1)
 
 	// 获取 baseContest 的 script
 	baseContest, err := model.GetBaseContestByID(baseContestID)
