@@ -8,42 +8,41 @@ import (
 
 type Match struct {
 	gorm.Model
-	BaseContestID uint `gorm:"index"`
+	BaseContestID uint `gorm:"not null;index"`
 
-	Players []Ai `gorm:"many2many:match_ais;"`
-	State   TaskState
-	Tag     string
+	Ais   []Ai `gorm:"many2many:match_ais;"`
+	State TaskState
+	Tag   string
 
 	Scores []int `gorm:"serializer:json"`
-
-	// snapshot fields
-	Users []User `gorm:"-"` // not stored in database
 }
 
 // CRUD: Create
 
+// Necessary fields: BaseContestID
+// Optional fields: Tag
 func (m *Match) Create(playerIDs []uint) error {
 	if len(playerIDs) == 0 {
 		return errors.New("no players")
 	}
 
-	for _, id := range playerIDs {
-		player := Ai{}
-		if err := db.First(&player, id).Error; err != nil {
-			return err
-		}
-		m.Players = append(m.Players, player)
+	if err := db.Create(m).Error; err != nil {
+		return err
 	}
 
-	return db.Create(m).Error
+	for _, playerID := range playerIDs {
+		if err := db.Exec("INSERT INTO match_ais (match_id, ai_id) VALUES (?, ?)", m.ID, playerID).Error; err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // CRUD: Read
 
 // Sorted by id in descending order.
 // If preload is true, the following fields will be preloaded:
-// Ai.ID, Ai.Sdk.ID, Ai.Sdk.Name
-// User.AvatarURL, User.Nickname, User.Username
+// Ais, Ais.User
 func GetMatches(query QueryParams, preload bool) (matches []Match, count int64, err error) {
 	tx := db.Order("id DESC")
 	if preload {
@@ -62,6 +61,8 @@ func GetMatchNumByBaseContestID(baseContestID uint) (uint, error) {
 	return uint(count), err
 }
 
+// If preload is true, the following fields will be preloaded:
+// Ais, Ais.Usergi
 func GetMatchByID(id uint, preload bool) (match Match, err error) {
 	tx := db.Where("id = ?", id)
 	if preload {
@@ -72,13 +73,7 @@ func GetMatchByID(id uint, preload bool) (match Match, err error) {
 }
 
 func addPreloadsForMatch(tx *gorm.DB) *gorm.DB {
-	return tx.Preload("Players", func(db *gorm.DB) *gorm.DB {
-		return db.Select("id").Preload("Sdk", func(db *gorm.DB) *gorm.DB {
-			return db.Select("id", "name")
-		}).Preload("User", func(db *gorm.DB) *gorm.DB {
-			return db.Select("avatar_url", "nickname", "username")
-		})
-	})
+	return tx.Preload("Ais").Preload("Ais.User")
 }
 
 // CRUD: Update

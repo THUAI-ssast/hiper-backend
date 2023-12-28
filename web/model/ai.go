@@ -6,12 +6,12 @@ import (
 
 type Ai struct {
 	gorm.Model
-	BaseContestID uint `gorm:"index"`
+	BaseContestID uint `gorm:"not null;index"`
 
-	UserID uint `gorm:"index"`
+	UserID uint `gorm:"not null;index"`
 	User   User `gorm:"foreignKey:UserID"`
-	SdkID  uint
-	Sdk    Sdk `gorm:"foreignKey:SdkID"`
+	SdkID  uint `gorm:"not null"`
+	Sdk    Sdk  `gorm:"foreignKey:SdkID"`
 
 	Note   string
 	Status TaskStatus `gorm:"embedded;embeddedPrefix:task_"`
@@ -32,6 +32,8 @@ func (a *Ai) BeforeCreate(tx *gorm.DB) (err error) {
 
 // CRUD: Create
 
+// Necessary fields: BaseContestID, UserID, SdkID
+// Optional fields: Note
 func (a *Ai) Create() error {
 	return db.Create(a).Error
 }
@@ -39,8 +41,7 @@ func (a *Ai) Create() error {
 // CRUD: Read
 
 // If preload is true, the following fields will be preloaded:
-// Sdk.ID, Sdk.Name
-// User.AvatarURL, User.Nickname, User.Username
+// Sdk, User
 func GetAis(query QueryParams, preload bool) (ais []Ai, count int64, err error) {
 	tx := db.Order("id DESC")
 	if preload {
@@ -53,6 +54,8 @@ func GetAis(query QueryParams, preload bool) (ais []Ai, count int64, err error) 
 	return ais, count, nil
 }
 
+// If preload is true, the following fields will be preloaded:
+// Sdk, User
 func GetAiByID(id uint, preload bool) (ai Ai, err error) {
 	tx := db.Where("id = ?", id)
 	if preload {
@@ -63,11 +66,7 @@ func GetAiByID(id uint, preload bool) (ai Ai, err error) {
 }
 
 func addPreloadsForAi(tx *gorm.DB) *gorm.DB {
-	return tx.Preload("Sdk", func(db *gorm.DB) *gorm.DB {
-		return db.Select("id", "name")
-	}).Preload("User", func(db *gorm.DB) *gorm.DB {
-		return db.Select("avatar_url", "nickname", "username")
-	})
+	return tx.Preload("Sdk").Preload("User")
 }
 
 // CRUD: Update

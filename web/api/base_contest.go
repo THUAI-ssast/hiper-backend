@@ -1097,13 +1097,17 @@ func getMatches(c *gin.Context) {
 	var matchList []map[string]interface{}
 	for _, match := range matches {
 		var players []map[string]interface{}
-		for i, player := range match.Players {
+		for i, player := range match.Ais {
 			ai, _ := model.GetAiByID(player.ID, true)
 			userid := ai.UserID
 			user, _ := model.GetUserByID(userid)
 			playerData := map[string]interface{}{
 				"ai": map[string]interface{}{
 					"id": player.ID,
+					"sdk": map[string]interface{}{
+						"id":   ai.SdkID,
+						"name": ai.Sdk.Name,
+					},
 				},
 				"score": match.Scores[i],
 				"user": map[string]interface{}{
@@ -1138,6 +1142,12 @@ func getMatches(c *gin.Context) {
 }
 
 func getMatch(c *gin.Context) {
+	userID := c.MustGet("userID").(int)
+	user, err := model.GetUserByID(uint(userID))
+	if err != nil {
+		c.JSON(400, gin.H{"error": "User not found"})
+		return
+	}
 	inmatchID := c.Param("match_id")
 	matchID, _ := strconv.Atoi(inmatchID)
 
@@ -1180,16 +1190,36 @@ func getMatch(c *gin.Context) {
 		fileContent = ""
 	}
 
+	var score int
+	var aiid uint
+	for i, ai := range aimMatch.Ais {
+		if ai.UserID == user.ID {
+			aiid = ai.ID
+			score = aimMatch.Scores[i]
+		}
+	}
+
+	playerData := map[string]interface{}{
+		"ai": map[string]interface{}{
+			"id": aiid,
+		},
+		"score": score,
+		"user": map[string]interface{}{
+			"avatar_url": user.AvatarURL,
+			"username":   user.Username,
+			"nickname":   user.Nickname,
+		},
+	}
+
 	c.JSON(200, gin.H{
 		"id":      aimMatch.ID,
 		"tag":     aimMatch.Tag,
 		"state":   aimMatch.State,
 		"time":    aimMatch.CreatedAt,
-		"players": basecontest.ConvertStruct(aimMatch.Players),
+		"players": playerData,
 		"replay":  fileContent,
 	})
 }
-
 func getSdks(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
