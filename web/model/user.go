@@ -23,8 +23,6 @@ type User struct {
 	School      string
 	Username    string `gorm:"uniqueIndex,not null"`
 
-	GameAdmins        []Game    `gorm:"many2many:game_admins;"`
-	ContestAdmins     []Contest `gorm:"many2many:contest_admins;"`
 	ContestRegistered []Contest `gorm:"many2many:contest_registrations;"`
 }
 
@@ -94,24 +92,6 @@ func (u *User) Update(updates map[string]interface{}) error {
 }
 
 // associations
-
-// admin
-
-func (u *User) GetGameAdmins(fields ...string) ([]Game, error) {
-	var games []Game
-	err := db.Model(u).Select(fields).Preload("BaseContest", func(db *gorm.DB) *gorm.DB {
-		return db.Select(baseContestBaseFields)
-	}).Association("GameAdmins").Find(&games)
-	return games, err
-}
-
-func (u *User) GetContestAdmins(fields ...string) ([]Contest, error) {
-	var contests []Contest
-	err := db.Model(u).Select(fields).Preload("BaseContest", func(db *gorm.DB) *gorm.DB {
-		return db.Select(baseContestBaseFields)
-	}).Association("ContestAdmins").Find(&contests)
-	return contests, err
-}
 
 func (u *User) GetContestRegistered(fields ...string) ([]Contest, error) {
 	var contests []Contest

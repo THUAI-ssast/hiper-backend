@@ -8,7 +8,7 @@ type Sdk struct {
 	gorm.Model
 	BaseContestID uint `gorm:"index"`
 
-	Name   string `gorm:"unique"`
+	Name   string
 	Readme string
 
 	BuildAi DockerTask `gorm:"embedded;embeddedPrefix:build_ai_"`
