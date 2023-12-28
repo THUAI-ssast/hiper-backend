@@ -13,6 +13,7 @@ import (
 //该测试不能直接运行，需新建Game：id=1及至少两个Contestant，并将script.js赋值给Gameid=1的script，此后在调试test中进行测试
 
 func TestInitGameMqAndRunScript(t *testing.T) {
+	Init()
 	// 设置 baseContestID
 	baseContestID := uint(1)
 
