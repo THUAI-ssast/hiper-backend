@@ -6,9 +6,9 @@ import (
 
 type Sdk struct {
 	gorm.Model
-	BaseContestID uint `gorm:"index"`
+	BaseContestID uint `gorm:"not null;index"`
 
-	Name   string `gorm:"unique"`
+	Name   string `gorm:"not null"`
 	Readme string
 
 	BuildAi DockerTask `gorm:"embedded;embeddedPrefix:build_ai_"`
@@ -17,6 +17,8 @@ type Sdk struct {
 
 // CRUD: Create
 
+// Necessary fields: BaseContestID, Name
+// Optional fields: Readme, BuildAi, RunAi
 func (s *Sdk) Create() error {
 	return db.Create(s).Error
 }

@@ -91,7 +91,8 @@ func CallOnMatchFinished(matchID uint, replay string) error {
 	}
 
 	// 调用 onMatchFinished 函数
-	_, err = CallJSFunction(vm, "onMatchFinished", match.Players, match.Tag, replay)
+	// TODO: 与文档不符，注意确认内部字段；修改文档或修改代码
+	_, err = CallJSFunction(vm, "onMatchFinished", match.Ais, match.Tag, replay)
 	if err != nil {
 		return err
 	}

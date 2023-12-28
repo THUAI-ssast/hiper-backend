@@ -29,6 +29,7 @@ type Registration struct {
 
 // CRUD: Create
 
+// Optional fields: Metadata, Registration, BaseContest.Script, BaseContest.States
 func (c *Contest) Create(gameID uint, adminIDs []uint) error {
 	// link a base contest or create a new one
 	if c.ID != 0 {
