@@ -41,8 +41,7 @@ func (a *Ai) Create() error {
 // CRUD: Read
 
 // If preload is true, the following fields will be preloaded:
-// Sdk.ID, Sdk.Name
-// User.AvatarURL, User.Nickname, User.Username
+// Sdk, User
 func GetAis(query QueryParams, preload bool) (ais []Ai, count int64, err error) {
 	tx := db.Order("id DESC")
 	if preload {
@@ -55,6 +54,8 @@ func GetAis(query QueryParams, preload bool) (ais []Ai, count int64, err error) 
 	return ais, count, nil
 }
 
+// If preload is true, the following fields will be preloaded:
+// Sdk, User
 func GetAiByID(id uint, preload bool) (ai Ai, err error) {
 	tx := db.Where("id = ?", id)
 	if preload {
@@ -65,11 +66,7 @@ func GetAiByID(id uint, preload bool) (ai Ai, err error) {
 }
 
 func addPreloadsForAi(tx *gorm.DB) *gorm.DB {
-	return tx.Preload("Sdk", func(db *gorm.DB) *gorm.DB {
-		return db.Select("id", "name")
-	}).Preload("User", func(db *gorm.DB) *gorm.DB {
-		return db.Select("avatar_url", "nickname", "username")
-	})
+	return tx.Preload("Sdk").Preload("User")
 }
 
 // CRUD: Update

@@ -1069,9 +1069,10 @@ func getMatches(c *gin.Context) {
 	var matchList []map[string]interface{}
 	for _, match := range matches {
 		matchData := map[string]interface{}{
-			"id":      match.ID,
-			"tag":     match.Tag,
-			"players": match.Players,
+			"id":  match.ID,
+			"tag": match.Tag,
+			// TODO: 与文档不符，注意确认内部字段；修改文档或修改代码
+			"players": match.Ais,
 			"state":   match.State,
 			"time":    match.CreatedAt,
 		}
@@ -1133,7 +1134,7 @@ func getMatch(c *gin.Context) {
 		"tag":     aimMatch.Tag,
 		"state":   aimMatch.State,
 		"time":    aimMatch.CreatedAt,
-		"players": aimMatch.Players,
+		"players": aimMatch.Ais,
 		"replay":  fileContent,
 	})
 }
