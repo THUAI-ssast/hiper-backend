@@ -29,12 +29,16 @@ func (m *Match) Create(playerIDs []uint) error {
 		return errors.New("no players")
 	}
 
-	for _, id := range playerIDs {
-		player := Ai{Model: gorm.Model{ID: id}}
-		m.Players = append(m.Players, player)
+	if err := db.Create(m).Error; err != nil {
+		return err
 	}
 
-	return db.Create(m).Error
+	for _, playerID := range playerIDs {
+		if err := db.Exec("INSERT INTO match_ais (match_id, ai_id) VALUES (?, ?)", m.ID, playerID).Error; err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // CRUD: Read

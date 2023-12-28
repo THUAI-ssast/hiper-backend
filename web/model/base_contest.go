@@ -81,11 +81,13 @@ func (bc *BaseContest) Create(adminIDs []uint) error {
 	if err := db.Create(bc).Error; err != nil {
 		return err
 	}
-	admins := make([]User, len(adminIDs))
-	for i, id := range adminIDs {
-		admins[i] = User{Model: gorm.Model{ID: id}, Password: []byte{1}}
+	for _, id := range adminIDs {
+		sql := `INSERT INTO base_contest_admins (base_contest_id, user_id) VALUES (?, ?)`
+		if err := db.Exec(sql, bc.ID, id).Error; err != nil {
+			return err
+		}
 	}
-	return db.Model(bc).Association("Admins").Append(admins)
+	return nil
 }
 
 // CRUD: Read
@@ -128,8 +130,8 @@ func (bc *BaseContest) IsAdmin(userID uint) (bool, error) {
 }
 
 func (bc *BaseContest) AddAdmin(userID uint) error {
-	user := User{Model: gorm.Model{ID: userID}}
-	return db.Model(bc).Association("Admins").Append(&user)
+	sql := `INSERT INTO base_contest_admins (base_contest_id, user_id) VALUES (?, ?)`
+	return db.Exec(sql, bc.ID, userID).Error
 }
 
 func (bc *BaseContest) GetAdmins() ([]User, error) {
@@ -139,8 +141,8 @@ func (bc *BaseContest) GetAdmins() ([]User, error) {
 }
 
 func (bc *BaseContest) RemoveAdmin(userID uint) error {
-	user := User{Model: gorm.Model{ID: userID}}
-	return db.Model(bc).Association("Admins").Delete(&user)
+	sql := `DELETE FROM base_contest_admins WHERE base_contest_id = ? AND user_id = ?`
+	return db.Exec(sql, bc.ID, userID).Error
 }
 
 // contestant
