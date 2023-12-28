@@ -4,7 +4,7 @@ import "gorm.io/gorm"
 
 type BaseContest struct {
 	gorm.Model
-	GameID uint
+	GameID uint          `gorm:"not null;index"`
 	States ContestStates `gorm:"embedded"`
 	Script string
 

@@ -8,7 +8,7 @@ import (
 
 type Match struct {
 	gorm.Model
-	BaseContestID uint `gorm:"index"`
+	BaseContestID uint `gorm:"not null;index"`
 
 	Players []Ai `gorm:"many2many:match_ais;"`
 	State   TaskState

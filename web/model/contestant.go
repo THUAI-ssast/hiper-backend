@@ -4,8 +4,8 @@ import "gorm.io/gorm"
 
 type Contestant struct {
 	gorm.Model
-	BaseContestID uint `gorm:"index"`
-	UserID        uint `gorm:"index"`
+	BaseContestID uint `gorm:"not null;index"`
+	UserID        uint `gorm:"not null;index"`
 	User          User `gorm:"foreignKey:UserID"`
 
 	Performance string                // editable by contest script

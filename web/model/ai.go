@@ -6,12 +6,12 @@ import (
 
 type Ai struct {
 	gorm.Model
-	BaseContestID uint `gorm:"index"`
+	BaseContestID uint `gorm:"not null;index"`
 
-	UserID uint `gorm:"index"`
+	UserID uint `gorm:"not null;index"`
 	User   User `gorm:"foreignKey:UserID"`
-	SdkID  uint
-	Sdk    Sdk `gorm:"foreignKey:SdkID"`
+	SdkID  uint `gorm:"not null"`
+	Sdk    Sdk  `gorm:"foreignKey:SdkID"`
 
 	Note   string
 	Status TaskStatus `gorm:"embedded;embeddedPrefix:task_"`

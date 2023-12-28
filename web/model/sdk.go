@@ -6,9 +6,9 @@ import (
 
 type Sdk struct {
 	gorm.Model
-	BaseContestID uint `gorm:"index"`
+	BaseContestID uint `gorm:"not null;index"`
 
-	Name   string
+	Name   string `gorm:"not null"`
 	Readme string
 
 	BuildAi DockerTask `gorm:"embedded;embeddedPrefix:build_ai_"`
