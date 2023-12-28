@@ -30,11 +30,11 @@ func TestGenValidateCode(t *testing.T) {
 	}
 
 	// 测试生成的验证码是否小于或等于最大值
-	for i := 1; i <= 6; i++ {
+	for i := 1; i <= 10; i++ {
 		s := user.GenValidateCode(i)
-		j, err := strconv.Atoi(s)
+		i, err := strconv.Atoi(s)
 		assert.Nil(t, err)
-		assert.LessOrEqual(t, j, 999999)
+		assert.LessOrEqual(t, i, 999999)
 	}
 
 	// 测试生成的验证码是否大于或等于最小值

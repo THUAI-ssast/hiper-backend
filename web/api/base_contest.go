@@ -736,6 +736,17 @@ func commitAi(c *gin.Context) {
 }
 
 func getTheAI(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(400, gin.H{})
+		return
+	}
+	_, err = model.GetBaseContestByID(uint(id))
+	if err != nil {
+		c.JSON(404, gin.H{"error": "Game not found"})
+		return
+	}
+
 	ai_id, err := strconv.Atoi(c.Param("ai_id"))
 	if err != nil {
 		c.JSON(400, gin.H{})
