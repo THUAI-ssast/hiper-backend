@@ -30,6 +30,8 @@ type User struct {
 
 // CRUD: Create
 
+// Necessary fields: Username, Email, Password
+// Optional fields: AvatarURL, Bio, Department, Name, Nickname, School, Permissions
 func (u *User) Create() error {
 	return db.Create(u).Error
 }

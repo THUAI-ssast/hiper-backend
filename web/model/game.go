@@ -34,6 +34,7 @@ type MatchDetail struct {
 
 // CRUD: Create
 
+// Optional fields: Metadata, GameLogic, MatchDetail, BaseContest.Script, BaseContest.States
 func (g *Game) Create(adminIDs []uint) error {
 	// link a base contest or create a new one
 	if g.ID != 0 {

@@ -17,6 +17,8 @@ type Sdk struct {
 
 // CRUD: Create
 
+// Necessary fields: BaseContestID, Name
+// Optional fields: Readme, BuildAi, RunAi
 func (s *Sdk) Create() error {
 	return db.Create(s).Error
 }

@@ -23,6 +23,8 @@ type ContestantPermissions struct {
 
 // CRUD: Create
 
+// Necessary fields: BaseContestID, UserID
+// Optional fields: Performance, Permissions, Points, AssignedAiID
 func (c *Contestant) Create() error {
 	return db.Create(c).Error
 }

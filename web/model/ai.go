@@ -32,6 +32,8 @@ func (a *Ai) BeforeCreate(tx *gorm.DB) (err error) {
 
 // CRUD: Create
 
+// Necessary fields: BaseContestID, UserID, SdkID
+// Optional fields: Note
 func (a *Ai) Create() error {
 	return db.Create(a).Error
 }

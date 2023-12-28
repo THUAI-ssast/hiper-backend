@@ -75,6 +75,8 @@ type DockerTask struct {
 
 // CRUD: Create
 
+// Necessary fields: GameID
+// Optional fields: Script, States
 func (bc *BaseContest) Create(adminIDs []uint) error {
 	if err := db.Create(bc).Error; err != nil {
 		return err

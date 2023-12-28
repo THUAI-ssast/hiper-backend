@@ -22,6 +22,8 @@ type Match struct {
 
 // CRUD: Create
 
+// Necessary fields: BaseContestID
+// Optional fields: Tag
 func (m *Match) Create(playerIDs []uint) error {
 	if len(playerIDs) == 0 {
 		return errors.New("no players")
