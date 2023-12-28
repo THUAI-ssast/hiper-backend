@@ -2,7 +2,6 @@ package mq
 
 import (
 	"fmt"
-	"math/rand"
 	"sort"
 
 	"github.com/THUAI-ssast/hiper-backend/web/model"
@@ -109,26 +108,12 @@ func updateContestant(contestantjs interface{}, body map[string]interface{}, bas
 
 func AddMatch(playerIDs []uint, baseContestID uint, tag string, extraInfo map[string]interface{}) (matchID uint, err error) {
 	match := model.Match{BaseContestID: baseContestID, Tag: tag}
-	//TODO:DELETE!
-	// 生成随机的 score
-	score := []int{rand.Intn(2), rand.Intn(2)}
-	// 确保 score 是 [0, 1] 或 [1, 0]
-	if score[0] == score[1] {
-		score[1] = 1 - score[0]
-	}
-	match.Scores = score
-	ai1, _ := model.GetAiByID(playerIDs[0], false)
-	ai2, _ := model.GetAiByID(playerIDs[1], false)
-	c1, _ := model.GetContestant(map[string]interface{}{"base_contest_id": baseContestID, "user_id": ai1.UserID}, nil)
-	c2, _ := model.GetContestant(map[string]interface{}{"base_contest_id": baseContestID, "user_id": ai2.UserID}, nil)
-	model.UpdateContestantByID(c1.ID, map[string]interface{}{"points": c1.Points + score[0]})
-	model.UpdateContestantByID(c2.ID, map[string]interface{}{"points": c2.Points + score[1]})
-	//TODO:DELETE!
 
 	err = match.Create(playerIDs)
 	if err != nil {
 		return 0, err
 	}
+	SendRunMatchMsg(model.Ctx, match.ID)
 	return match.ID, nil
 }
 
