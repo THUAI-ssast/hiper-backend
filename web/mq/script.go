@@ -80,8 +80,21 @@ func CallOnMatchFinished(matchID uint, replay string) error {
 		Mutex.Unlock()
 	}
 
+	var players []map[string]interface{}
+
+	for i, ai := range match.Ais {
+		contestant, _ := model.GetContestant(map[string]interface{}{
+			"base_contest_id": baseContestID,
+			"assigned_ai_id":  ai.ID,
+		}, nil)
+		players = append(players, map[string]interface{}{
+			"contestant": contestant,
+			"score":      match.Scores[i],
+		})
+	}
+
 	// 调用 onMatchFinished 函数
-	_, err = CallJSFunction(loop, "onMatchFinished", match.Players, match.Tag, replay)
+	_, err = CallJSFunction(loop, "onMatchFinished", players, match.Tag, replay)
 	if err != nil {
 		return err
 	}
