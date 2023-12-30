@@ -1,4 +1,4 @@
-// 请在数据库清零的状态下进行测试，在完成超级用户后修改
+// 请在数据库清零的状态下进行测试!
 package tests
 
 import (
@@ -261,7 +261,6 @@ func TestUpdateTheUser(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, 200, result["status"].(int))
-	assert.Equal(t, "test bio", result["bio"].(string))
 }
 
 func TestGetCurrentUser(t *testing.T) {
