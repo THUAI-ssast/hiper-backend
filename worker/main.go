@@ -26,8 +26,11 @@ func main() {
 		switch stream.Stream {
 		case "build":
 			repository.UpdateBuildState(values, model.TaskStateRunning)
-			task.Build(values)
-			repository.UpdateBuildState(values, model.TaskStateFinished)
+			taskState, err := task.Build(values)
+			if err != nil {
+				log.Println(err)
+			}
+			repository.UpdateBuildState(values, taskState)
 		case "manual_match", "auto_match":
 			matchIDInt, err := strconv.Atoi(values["id"].(string))
 			if err != nil {
@@ -35,8 +38,11 @@ func main() {
 			}
 			matchID := uint(matchIDInt)
 			repository.UpdateMatchState(matchID, model.TaskStateRunning)
-			task.Match(matchID)
-			repository.UpdateMatchState(matchID, model.TaskStateFinished)
+			taskState, err := task.Match(matchID)
+			if err != nil {
+				log.Println(err)
+			}
+			repository.UpdateMatchState(matchID, taskState)
 		}
 
 		if err := mq.AckTask(stream); err != nil {
