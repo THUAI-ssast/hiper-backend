@@ -12,7 +12,7 @@ func InitGameMqAndRunScript(baseContestID uint) {
 	// 获取 baseContest 的 script
 	baseContest, err := model.GetBaseContestByID(baseContestID)
 	if err != nil {
-		fmt.Println("Failed to get baseContest by ID: %v", err)
+		fmt.Println("Failed to get baseContest by ID")
 	}
 
 	script := baseContest.Script
@@ -26,7 +26,7 @@ func InitGameMqAndRunScript(baseContestID uint) {
 	if !exists {
 		err := CreateRuntimeWithJSFile(baseContestID)
 		if err != nil {
-			fmt.Println("cannot create loop: %v", err)
+			fmt.Println("cannot create loop")
 		}
 
 		// 再次查找 runtime
@@ -55,6 +55,6 @@ func InitGameMqAndRunScript(baseContestID uint) {
 		_, err = vm.RunString(script)
 	})
 	if err != nil {
-		fmt.Println("Failed to run script: %v", err)
+		fmt.Println("Failed to run script")
 	}
 }
