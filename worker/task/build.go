@@ -1,23 +1,25 @@
 package task
 
 import (
-	"log"
-	"strconv"
+	"crypto/md5"
+	"fmt"
+
+	"github.com/THUAI-ssast/hiper-backend/web/model"
+	"github.com/THUAI-ssast/hiper-backend/worker/repository"
 )
 
-func Build(values map[string]interface{}) {
-	idInt, err := strconv.Atoi(values["id"].(string))
-	if err != nil {
-		log.Fatal(err)
-	}
-	id := uint(idInt)
-
-	switch values["type"] {
+func Build(taskType string, id uint) (err error) {
+	repository.StartBuildTask(taskType, id)
+	var taskState model.TaskState
+	var msg string
+	switch taskType {
 	case "game_logic":
-		buildGameLogic(id)
+		taskState, msg, err = buildGameLogic(id)
 	case "ai":
-		buildAI(id)
+		taskState, msg, err = buildAI(id)
 	}
+	repository.EndBuildTask(taskType, id, taskState, msg)
+	return err
 }
 
 // 获取任务所需信息
