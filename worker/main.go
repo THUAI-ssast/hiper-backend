@@ -18,6 +18,7 @@ func main() {
 	InitConfig()
 	model.InitDb()
 	model.InitRedis()
+	mq.InitMq()
 
 	for {
 		stream, err := mq.GetTask()
