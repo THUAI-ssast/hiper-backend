@@ -1,5 +1,9 @@
-# 1. Build `worker` into an executable
+FROM golang:1.21-alpine as builder
 
-# 2. Build `match_lib` into a shared library
+ENV GOPROXY=https://goproxy.cn,direct
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories \
+    && apk add --no-cache ca-certificates tzdata
 
-# 3. Copy `executable worker` and shared library `match_lib` to a new image to run
+# TODO: build worker
+
+FROM alpine as prod
