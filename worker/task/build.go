@@ -21,7 +21,7 @@ func Build(domain repository.DomainType, id uint) error {
 
 	repository.StartBuildTask(domain, id)
 
-	nameVersioned, err := prepareImage(repository.GameLogicDomain, repository.BuildOperation, id)
+	err = prepareImage(repository.GameLogicDomain, repository.BuildOperation, id)
 	if err != nil {
 		repository.EndBuildTask(domain, id, model.TaskStateSystemError, err.Error())
 		return err
@@ -31,7 +31,7 @@ func Build(domain repository.DomainType, id uint) error {
 		 * 运行时间
 	     * 日志长度
 	*/
-	containerConfig := &container.Config{Image: nameVersioned}
+	containerConfig := &container.Config{Image: fmt.Sprintf("%s-%d-%s", domain, id, repository.BuildOperation)}
 	hostConfig := &container.HostConfig{
 		Binds:      getBinds(domain, id),
 		AutoRemove: true,

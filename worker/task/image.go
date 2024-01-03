@@ -42,10 +42,11 @@ func getDockerfile(domain repository.DomainType, operation repository.OperationT
 	return
 }
 
-func prepareImage(domain repository.DomainType, operation repository.OperationType, id uint) (string, error) {
+// prepareImage builds the image if not exists or out-of-date
+func prepareImage(domain repository.DomainType, operation repository.OperationType, id uint) error {
 	dockerfile, err := getDockerfile(domain, operation, id)
 	if err != nil {
-		return "", err
+		return err
 	}
 	dockerfileHash := md5.Sum([]byte(dockerfile))
 	name := fmt.Sprintf("%s-%d-%s", domain, id, operation)
@@ -55,10 +56,10 @@ func prepareImage(domain repository.DomainType, operation repository.OperationTy
 	if _, _, err := cli.ImageInspectWithRaw(ctx, nameVersioned); err != nil {
 		// image not exists, build it
 		if err = buildImage(dockerfile, name, tag, domain, operation, id); err != nil {
-			return "", err
+			return err
 		}
 	}
-	return nameVersioned, nil
+	return nil
 }
 
 // param name and tag: `--tag <name>:<tag>`
