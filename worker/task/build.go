@@ -2,6 +2,7 @@ package task
 
 import (
 	"context"
+	"crypto/md5"
 	"fmt"
 	"log"
 	"strconv"
@@ -43,6 +44,11 @@ func buildGameLogic(gameID uint) (status int) {
 	gameLogicBuild := gameLogic.Build
 	// 获取游戏逻辑的构建任务的 Dockerfile
 	dockerfile := gameLogicBuild.Dockerfile
+	data := []byte(dockerfile)
+	dockerfileHash := md5.Sum(data)
+	dockerfileMD5 := fmt.Sprintf("%x", dockerfileHash)
+	tag := fmt.Sprintf("game-%d-build-%s", gameID, dockerfileMD5)
+
 	// 获取游戏逻辑文件路径
 	filePath := fmt.Sprintf("/var/hiper/games/%d/game_logic/gamelogic.zip", gameID)
 	// 替换 Dockerfile 中的游戏逻辑文件路径
@@ -57,6 +63,7 @@ func buildGameLogic(gameID uint) (status int) {
 	buildContext := strings.NewReader(dockerfile)
 	buildOptions := types.ImageBuildOptions{
 		Dockerfile: "Dockerfile",
+		Tags:       []string{tag},
 	}
 
 	resp, err := cli.ImageBuild(ctx, buildContext, buildOptions)
