@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"hiper-backend/hiper-backend/web/mq"
 	"mime"
 	"mime/multipart"
 	"net/http"
@@ -166,6 +167,7 @@ func updateGameScript(c *gin.Context) {
 		c.Abort()
 		return
 	}
+	go mq.InitGameMqAndRunScript(gameID)
 	c.JSON(200, gin.H{})
 	c.Abort()
 }
