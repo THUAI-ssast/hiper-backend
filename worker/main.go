@@ -26,8 +26,12 @@ func main() {
 		switch stream.Stream {
 		case "build":
 			repository.UpdateBuildState(values, model.TaskStateRunning)
-			task.Build(values)
-			repository.UpdateBuildState(values, model.TaskStateFinished)
+			buildOutput := task.Build(values)
+			if buildOutput == 0 {
+				repository.UpdateBuildState(values, model.TaskStateFinished)
+			} else {
+				repository.UpdateBuildState(values, model.TaskStateInputError)
+			}
 		case "manual_match", "auto_match":
 			matchIDInt, err := strconv.Atoi(values["id"].(string))
 			if err != nil {
