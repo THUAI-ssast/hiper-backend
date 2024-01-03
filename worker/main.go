@@ -4,6 +4,7 @@ import (
 	"log"
 	"strconv"
 
+	"github.com/THUAI-ssast/hiper-backend/web/config"
 	"github.com/THUAI-ssast/hiper-backend/web/model"
 
 	"github.com/THUAI-ssast/hiper-backend/worker/mq"
@@ -12,6 +13,7 @@ import (
 )
 
 func main() {
+	config.InitConfig()
 	model.InitDb()
 	model.InitRedis()
 

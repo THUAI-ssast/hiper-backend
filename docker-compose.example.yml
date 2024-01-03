@@ -44,6 +44,7 @@ services:
     restart: always
     volumes:
       - hiper_data:/var/hiper
+      - ./worker/config.toml:/srv/config.toml
 
   nginx:
     image: nginx:latest
