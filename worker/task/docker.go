@@ -18,5 +18,3 @@ func init() {
 		ctx = context.Background()
 	}
 }
-
-// TODO: define some inner functions for `build.go` and `match.go`

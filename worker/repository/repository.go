@@ -60,5 +60,3 @@ func EndBuildImageTask(domain DomainType, operation OperationType, id uint, stat
 		model.UpdateSdkByID(id, map[string]interface{}{fieldState: state, fieldMsg: msg})
 	}
 }
-
-// TODO: add more functions
