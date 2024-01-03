@@ -3,7 +3,7 @@ module github.com/THUAI-ssast/hiper-backend/worker
 go 1.21
 
 require (
-	github.com/THUAI-ssast/hiper-backend/web v0.0.0-20240103094930-9f92cb2f68ad
+	github.com/THUAI-ssast/hiper-backend/web v0.0.0-20240103162447-f3f6a67b7c87
 	github.com/redis/go-redis/v9 v9.3.1
 )
 
