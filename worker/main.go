@@ -3,8 +3,10 @@ package main
 import (
 	"log"
 	"strconv"
+	"strings"
 
-	"github.com/THUAI-ssast/hiper-backend/web/config"
+	"github.com/spf13/viper"
+
 	"github.com/THUAI-ssast/hiper-backend/web/model"
 
 	"github.com/THUAI-ssast/hiper-backend/worker/mq"
@@ -13,7 +15,7 @@ import (
 )
 
 func main() {
-	config.InitConfig()
+	InitConfig()
 	model.InitDb()
 	model.InitRedis()
 
@@ -45,6 +47,19 @@ func main() {
 			log.Println(err)
 		}
 	}
+}
+
+// InitConfig initializes the configuration of the application
+func InitConfig() {
+	viper.AutomaticEnv()
+	// We can use `redis.host` instead of `REDIS_HOST`
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	// Read remaining configs from file
+	viper.SetConfigName("config")
+	viper.SetConfigType("toml")
+	viper.AddConfigPath(".")
+	viper.ReadInConfig()
 }
 
 func getIDFromValues(values map[string]interface{}) uint {
