@@ -20,14 +20,15 @@ func Build(values map[string]interface{}) (status int) {
 		log.Fatal(err)
 	}
 	id := uint(idInt)
+	status = 1
 
 	switch values["type"] {
 	case "game_logic":
-		return buildGameLogic(id)
+		status = buildGameLogic(id)
 	case "ai":
-		return buildAI(id)
+		status = buildAI(id)
 	}
-	return 1
+	return
 }
 
 // 获取任务所需信息
@@ -48,7 +49,7 @@ func buildGameLogic(gameID uint) (status int) {
 	data := []byte(dockerfile)
 	dockerfileHash := md5.Sum(data)
 	dockerfileMD5 := fmt.Sprintf("%x", dockerfileHash)
-	tag := fmt.Sprintf("game-%d-build-%s", gameID, dockerfileMD5)
+	tag := fmt.Sprintf("game-%d-build:%s", gameID, dockerfileMD5)
 
 	// 获取游戏逻辑文件路径
 	filePath := fmt.Sprintf("/var/hiper/games/%d/game_logic/gamelogic.zip", gameID)
@@ -70,10 +71,12 @@ func buildGameLogic(gameID uint) (status int) {
 	resp, err := cli.ImageBuild(ctx, buildContext, buildOptions)
 	if err != nil {
 		log.Fatal(err)
-		return 1
+		status = 1
+		return
 	}
 	defer resp.Body.Close()
-	return 0
+	status = 0
+	return
 }
 
 func buildAI(aiID uint) (status int) {
@@ -89,7 +92,7 @@ func buildAI(aiID uint) (status int) {
 	data := []byte(dockerfile)
 	dockerfileHash := md5.Sum(data)
 	dockerfileMD5 := fmt.Sprintf("%x", dockerfileHash)
-	tag := fmt.Sprintf("ai-%d-build-%s", aiID, dockerfileMD5)
+	tag := fmt.Sprintf("ai-%d-build:%s", aiID, dockerfileMD5)
 	// 获取AI文件路径
 	filePath := fmt.Sprintf("/var/hiper/ais/%d/ai.zip", aiID)
 	// 替换 Dockerfile 中的 AI 文件路径
