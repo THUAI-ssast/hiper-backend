@@ -35,7 +35,9 @@ func SendBuildSdkMsg(ctx context.Context, sdkID uint) error {
 func SendRunMatchMsg(ctx context.Context, matchID uint) error {
 	args := &redis.XAddArgs{
 		Stream: "manual_match",
-		Values: matchID,
+		Values: map[string]interface{}{
+			"id": fmt.Sprintf("%d", matchID),
+		},
 	}
 	_, err := model.Rdb.XAdd(ctx, args).Result()
 	return err
