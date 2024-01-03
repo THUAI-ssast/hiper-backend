@@ -1,14 +1,12 @@
 package mq
 
 import (
-	"fmt"
 	"sort"
 
 	"github.com/THUAI-ssast/hiper-backend/web/model"
 )
 
 func getContestantsByRanking(filter string, baseContestID uint) (contestants []model.Contestant, err error) {
-	fmt.Println("getContestantsByRanking-2")
 	baseContest, err := model.GetBaseContestByID(baseContestID)
 	if err != nil {
 		return nil, err
