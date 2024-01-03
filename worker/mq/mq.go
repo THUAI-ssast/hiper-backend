@@ -21,7 +21,7 @@ func InitMq() {
 
 // GetTask returns a task from redis stream
 func GetTask() (*redis.XStream, error) {
-	t, err := rdb.XReadGroup(ctx, &redis.XReadGroupArgs{
+	t, err := model.Rdb.XReadGroup(ctx, &redis.XReadGroupArgs{
 		Group:    "worker_group",
 		Consumer: hostname,
 		Streams:  []string{"build", "manual_match", "auto_match"},

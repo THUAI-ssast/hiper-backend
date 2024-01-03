@@ -3,6 +3,9 @@ package mq
 import (
 	"context"
 	"fmt"
+
+	"github.com/THUAI-ssast/hiper-backend/web/model"
+	"github.com/redis/go-redis/v9"
 )
 
 func SendBuildAIMsg(ctx context.Context, aiID uint) error {
@@ -30,9 +33,10 @@ func SendBuildSdkMsg(ctx context.Context, sdkID uint) error {
 }
 
 func SendRunMatchMsg(ctx context.Context, matchID uint) error {
-	return sendMsg(ctx, &Msg{
-		Topic: "Run",
-		Body:  []byte(fmt.Sprintf("%d", matchID)),
-		Type:  "Match",
-	})
+	args := &redis.XAddArgs{
+		Stream: "manual_match",
+		Values: matchID,
+	}
+	_, err := model.Rdb.XAdd(ctx, args).Result()
+	return err
 }
