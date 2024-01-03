@@ -2,7 +2,6 @@ package api
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
 	"time"
 
@@ -49,7 +48,6 @@ func ParseToken(tokenString string) (*MyClaims, error) {
 	var mc = new(MyClaims)
 	token, err := jwt.ParseWithClaims(tokenString, mc, keyFunc)
 	if err != nil {
-		fmt.Println(err.Error())
 		return nil, err
 	}
 	// 校验token
