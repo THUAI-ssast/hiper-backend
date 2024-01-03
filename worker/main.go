@@ -7,6 +7,7 @@ import (
 	"github.com/THUAI-ssast/hiper-backend/web/model"
 
 	"github.com/THUAI-ssast/hiper-backend/worker/mq"
+	"github.com/THUAI-ssast/hiper-backend/worker/repository"
 	"github.com/THUAI-ssast/hiper-backend/worker/task"
 )
 
@@ -26,7 +27,7 @@ func main() {
 		case "build":
 			taskType := values["type"].(string)
 			id := getIDFromValues(values)
-			err := task.Build(taskType, id)
+			err := task.Build(repository.DomainType(taskType), id)
 			if err != nil {
 				log.Println(err)
 			}

@@ -8,17 +8,17 @@ import (
 	"github.com/THUAI-ssast/hiper-backend/worker/repository"
 )
 
-func Build(taskType string, id uint) (err error) {
-	repository.StartBuildTask(taskType, id)
+func Build(domain repository.DomainType, id uint) (err error) {
+	repository.StartBuildTask(domain, id)
 	var taskState model.TaskState
 	var msg string
-	switch taskType {
-	case "game_logic":
+	switch domain {
+	case repository.GameLogicDomain:
 		taskState, msg, err = buildGameLogic(id)
-	case "ai":
+	case repository.AiDomain:
 		taskState, msg, err = buildAI(id)
 	}
-	repository.EndBuildTask(taskType, id, taskState, msg)
+	repository.EndBuildTask(domain, id, taskState, msg)
 	return err
 }
 
@@ -30,6 +30,6 @@ func buildGameLogic(gameID uint) {
 	// TODO
 }
 
-func buildAI(aiID uint) {
+func buildAI(aiID uint) (taskState model.TaskState, msg string, err error) {
 	// TODO
 }
