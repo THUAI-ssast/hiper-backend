@@ -32,20 +32,18 @@ services:
     restart: always
     volumes:
       - redis_data:/data
-  # TODO: worker service hasn't been implemented yet
-  # workers:
-  #   build: worker
-  #   depends_on:
-  #     - db
-  #     - redis
-  #   deploy:
-  #     replicas: 2
-  #   networks:
-  #     - hiper
-  #   privileged: true
-  #   restart: always
-  #   volumes:
-  #     - hiper_data:/var/hiper
+
+  workers:
+    build: worker
+    runtime: sysbox-runc
+    depends_on:
+      - db
+      - redis
+    networks:
+      - hiper
+    restart: always
+    volumes:
+      - hiper_data:/var/hiper
 
   nginx:
     image: nginx:latest
