@@ -14,7 +14,7 @@ import (
 	"github.com/docker/docker/client"
 )
 
-func Build(values map[string]interface{}) {
+func Build(values map[string]interface{}) (status int) {
 	idInt, err := strconv.Atoi(values["id"].(string))
 	if err != nil {
 		log.Fatal(err)
@@ -23,10 +23,11 @@ func Build(values map[string]interface{}) {
 
 	switch values["type"] {
 	case "game_logic":
-		buildGameLogic(id)
+		return buildGameLogic(id)
 	case "ai":
-		buildAI(id)
+		return buildAI(id)
 	}
+	return 1
 }
 
 // 获取任务所需信息
@@ -75,6 +76,42 @@ func buildGameLogic(gameID uint) (status int) {
 	return 0
 }
 
-func buildAI(aiID uint) {
-	// TODO
+func buildAI(aiID uint) (status int) {
+	// 获取AI
+	ai, err := model.GetAiByID(aiID, true)
+	if err != nil {
+		log.Fatal(err)
+	}
+	// 获取AI的构建任务
+	aiBuild := ai.Sdk.BuildAi
+	// 获取AI的构建任务的 Dockerfile
+	dockerfile := aiBuild.Dockerfile
+	data := []byte(dockerfile)
+	dockerfileHash := md5.Sum(data)
+	dockerfileMD5 := fmt.Sprintf("%x", dockerfileHash)
+	tag := fmt.Sprintf("ai-%d-build-%s", aiID, dockerfileMD5)
+	// 获取AI文件路径
+	filePath := fmt.Sprintf("/var/hiper/ais/%d/ai.zip", aiID)
+	// 替换 Dockerfile 中的 AI 文件路径
+	dockerfile = strings.Replace(dockerfile, "AI_PATH", filePath, -1)
+	// 创建镜像
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	buildContext := strings.NewReader(dockerfile)
+	buildOptions := types.ImageBuildOptions{
+		Dockerfile: "Dockerfile",
+		Tags:       []string{tag},
+	}
+
+	resp, err := cli.ImageBuild(ctx, buildContext, buildOptions)
+	if err != nil {
+		log.Fatal(err)
+		return 1
+	}
+	defer resp.Body.Close()
+	return 0
 }
