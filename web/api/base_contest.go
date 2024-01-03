@@ -166,6 +166,7 @@ func updateGameScript(c *gin.Context) {
 		c.Abort()
 		return
 	}
+	go mq.InitGameMqAndRunScript(gameID)
 	c.JSON(200, gin.H{})
 	c.Abort()
 }
