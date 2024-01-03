@@ -14,7 +14,7 @@ RUN CGO_ENABLED=0 go build -ldflags "-s -w" -o app . \
 
 FROM alpine as prod
 
-apk add --no-cache docker
+RUN apk add --no-cache docker
 
 WORKDIR /srv/
 COPY --from=builder /app/app .
