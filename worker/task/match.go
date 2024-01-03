@@ -191,10 +191,13 @@ func Match(matchID uint) {
 	if err != nil {
 		panic(err)
 	}
-	defer reader.Close()
-
-	_, err = io.Copy(os.Stdout, reader)
+	defer gameContainerLogs.Close()
+	gameContainerLogsFile, err := os.Create(fmt.Sprintf("/var/hiper/matches/%d/game.log", matchID))
 	if err != nil {
+		panic(err)
+	}
+	defer gameContainerLogsFile.Close()
+	if _, err := io.Copy(gameContainerLogsFile, gameContainerLogs); err != nil {
 		panic(err)
 	}
 
