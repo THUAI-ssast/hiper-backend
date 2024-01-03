@@ -15,7 +15,19 @@ type Match struct {
 	Tag   string
 
 	Scores []int `gorm:"serializer:json"`
+
+	// Customized Info string passed to game logic. JSON format.
+	ExtraInfo string
+	MatchType MatchType
 }
+
+type MatchType string
+
+const (
+	MatchTypePublic  MatchType = "public"
+	MatchTypePrivate MatchType = "private"
+	MatchTypeTest    MatchType = "test"
+)
 
 // CRUD: Create
 
