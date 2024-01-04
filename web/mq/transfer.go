@@ -30,6 +30,7 @@ func SendBuildGameLogicMsg(ctx context.Context, gameID uint) error {
 
 	_, err := rdb.XAdd(ctx, &redis.XAddArgs{
 		Stream: "build",
+		ID:     "*",
 		Values: map[string]interface{}{
 			"type": "game_logic",
 			"id":   fmt.Sprintf("%d", gameID),
@@ -47,6 +48,7 @@ func SendRunAutoMatchMsg(ctx context.Context, matchID uint) error {
 
 	_, err := rdb.XAdd(ctx, &redis.XAddArgs{
 		Stream: "auto_match",
+		ID:     "*",
 		Values: map[string]interface{}{
 			"id": fmt.Sprintf("%d", matchID),
 		},
