@@ -24,7 +24,7 @@ func GetTask() (*redis.XStream, error) {
 	t, err := rdb.XReadGroup(ctx, &redis.XReadGroupArgs{
 		Group:    "worker_group",
 		Consumer: hostname,
-		Streams:  []string{"build", "manual_match", "auto_match", ">"},
+		Streams:  []string{"build", "manual_match", "auto_match", ">", ">", ">"},
 		Count:    1,
 		Block:    0,
 	}).Result()
