@@ -107,11 +107,9 @@ func (u *User) GetContestRegistered(fields ...string) ([]Contest, error) {
 // If the user exists(determined by username), update its password.
 // If the user does not exist, create it.
 func UpsertUser(user User) {
+	newPassword := user.Password
 	// Find the user by username or create a new one
-	result := db.Where(User{Username: user.Username}).FirstOrCreate(&user)
+	db.Where("username = ?", user.Username).FirstOrCreate(&user)
 
-	// If the user was found, update the password
-	if result.RowsAffected > 0 {
-		db.Model(&user).Update("password", user.Password)
-	}
+	db.Model(&user).Update("password", newPassword)
 }
