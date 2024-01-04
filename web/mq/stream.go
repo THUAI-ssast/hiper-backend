@@ -3,6 +3,7 @@ package mq
 import (
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/THUAI-ssast/hiper-backend/web/model"
@@ -16,7 +17,8 @@ func Startup() {
 	group := "worker_group"
 	for _, stream := range streams {
 		err := rdb.XGroupCreateMkStream(Ctx_callback, stream, group, "0").Err()
-		if err != nil {
+		// ignore BUSYGROUP error
+		if err != nil && !strings.Contains(err.Error(), "BUSYGROUP") {
 			panic(err)
 		}
 	}
