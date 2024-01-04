@@ -1,5 +1,22 @@
-# 1. Build `worker` into an executable
+FROM golang:1.21-alpine as builder
 
-# 2. Build `match_lib` into a shared library
+ENV GOPROXY=https://goproxy.cn,direct
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 
-# 3. Copy `executable worker` and shared library `match_lib` to a new image to run
+# Download dependencies
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Build
+COPY . .
+RUN CGO_ENABLED=0 go build -ldflags "-s -w" -o app . \
+    && rm -rf /app/go.mod /app/go.sum /usr/local/go
+
+FROM alpine as prod
+
+RUN apk add --no-cache docker
+
+WORKDIR /srv/
+COPY --from=builder /app/app .
+CMD ["./app"]
