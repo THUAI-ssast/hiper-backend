@@ -12,6 +12,10 @@ import (
 	"github.com/docker/docker/api/types"
 )
 
+func getImage(domain repository.DomainType, operation repository.OperationType, id uint) string {
+	return fmt.Sprintf("%s-%d-%s", domain, id, operation)
+}
+
 func getDockerfile(domain repository.DomainType, operation repository.OperationType, id uint) (dockerfile string, err error) {
 	switch domain {
 	case repository.GameLogicDomain:

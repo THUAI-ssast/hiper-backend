@@ -31,7 +31,7 @@ func Build(domain repository.DomainType, id uint) error {
 		 * 运行时间
 	     * 日志长度
 	*/
-	containerConfig := &container.Config{Image: fmt.Sprintf("%s-%d-%s", domain, id, repository.BuildOperation)}
+	containerConfig := &container.Config{Image: getImage(domain, repository.BuildOperation, id)}
 	hostConfig := &container.HostConfig{
 		Binds:      getBinds(domain, id),
 		AutoRemove: true,
