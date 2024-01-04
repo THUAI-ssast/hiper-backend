@@ -3,7 +3,7 @@ module github.com/THUAI-ssast/hiper-backend/worker
 go 1.21
 
 require (
-	github.com/THUAI-ssast/hiper-backend/web v0.0.0-20240103162447-f3f6a67b7c87
+	github.com/THUAI-ssast/hiper-backend/web v0.0.0-20240104094103-c33e29c0017e
 	github.com/redis/go-redis/v9 v9.3.1
 )
 
@@ -47,11 +47,11 @@ require (
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/spf13/viper v1.18.2 // indirect
+	github.com/spf13/viper v1.18.2
 	github.com/subosito/gotenv v1.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.17.0 // indirect
-	golang.org/x/exp v0.0.0-20231226003508-02704c960a9b // indirect
+	golang.org/x/exp v0.0.0-20240103183307-be819d1f06fc // indirect
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
