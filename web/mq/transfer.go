@@ -13,6 +13,7 @@ func SendBuildAIMsg(ctx context.Context, aiID uint) error {
 
 	_, err := rdb.XAdd(ctx, &redis.XAddArgs{
 		Stream: "build",
+		ID:     "*",
 		Values: map[string]interface{}{
 			"type": "ai",
 			"id":   fmt.Sprintf("%d", aiID),
