@@ -42,3 +42,14 @@ func AckTask(stream *redis.XStream) error {
 	_, err := rdb.XAck(ctx, stream.Stream, "worker_group", stream.Messages[0].ID).Result()
 	return err
 }
+
+func PublishMatchResult(matchID uint, replay string) error {
+	_, err := rdb.XAdd(ctx, &redis.XAddArgs{
+		Stream: "match_result",
+		Values: map[string]interface{}{
+			"id":     matchID,
+			"replay": replay,
+		},
+	}).Result()
+	return err
+}
