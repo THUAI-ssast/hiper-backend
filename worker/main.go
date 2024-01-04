@@ -3,6 +3,9 @@ package main
 import (
 	"log"
 	"strconv"
+	"strings"
+
+	"github.com/spf13/viper"
 
 	"github.com/THUAI-ssast/hiper-backend/web/model"
 
@@ -12,8 +15,10 @@ import (
 )
 
 func main() {
+	InitConfig()
 	model.InitDb()
 	model.InitRedis()
+	mq.InitMq()
 
 	for {
 		stream, err := mq.GetTask()
@@ -25,26 +30,43 @@ func main() {
 
 		switch stream.Stream {
 		case "build":
-			repository.UpdateBuildState(values, model.TaskStateRunning)
-			buildOutput := task.Build(values)
-			if buildOutput == 0 {
-				repository.UpdateBuildState(values, model.TaskStateFinished)
-			} else {
-				repository.UpdateBuildState(values, model.TaskStateInputError)
+			taskType := values["type"].(string)
+			id := getIDFromValues(values)
+			err := task.Build(repository.DomainType(taskType), id)
+			if err != nil {
+				log.Println(err)
 			}
 		case "manual_match", "auto_match":
-			matchIDInt, err := strconv.Atoi(values["id"].(string))
+			matchID := getIDFromValues(values)
+			err := task.Match(matchID)
 			if err != nil {
-				log.Fatal(err)
+				log.Println(err)
 			}
-			matchID := uint(matchIDInt)
-			repository.UpdateMatchState(matchID, model.TaskStateRunning)
-			task.Match(matchID)
-			repository.UpdateMatchState(matchID, model.TaskStateFinished)
 		}
 
 		if err := mq.AckTask(stream); err != nil {
 			log.Println(err)
 		}
 	}
+}
+
+// InitConfig initializes the configuration of the application
+func InitConfig() {
+	viper.AutomaticEnv()
+	// We can use `redis.host` instead of `REDIS_HOST`
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	// Read remaining configs from file
+	viper.SetConfigName("config")
+	viper.SetConfigType("toml")
+	viper.AddConfigPath(".")
+	viper.ReadInConfig()
+}
+
+func getIDFromValues(values map[string]interface{}) uint {
+	idInt, err := strconv.Atoi(values["id"].(string))
+	if err != nil {
+		log.Fatal(err)
+	}
+	return uint(idInt)
 }

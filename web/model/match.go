@@ -15,7 +15,32 @@ type Match struct {
 	Tag   string
 
 	Scores []int `gorm:"serializer:json"`
+
+	// Customized Info string passed to game logic. JSON format.
+	ExtraInfo string
+	MatchType MatchType `gorm:"default: public"`
+
+	// snapshot fields
+	GameID uint
 }
+
+func (m *Match) BeforeCreate(tx *gorm.DB) (err error) {
+	// Fill GameID from BaseContestID
+	var bc BaseContest
+	if err = tx.Model(&BaseContest{}).Select("game_id").First(&bc, m.BaseContestID).Error; err != nil {
+		return err
+	}
+	m.GameID = bc.GameID
+	return nil
+}
+
+type MatchType string
+
+const (
+	MatchTypePublic  MatchType = "public"
+	MatchTypePrivate MatchType = "private"
+	MatchTypeTest    MatchType = "test"
+)
 
 // CRUD: Create
 

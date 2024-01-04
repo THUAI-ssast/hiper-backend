@@ -1,222 +1,259 @@
 package task
 
 import (
-	"context"
-	"crypto/md5"
+	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"os"
+	"strconv"
+	"strings"
+	"syscall"
 
-	"github.com/THUAI-ssast/hiper-backend/web/model"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/network"
-	"github.com/docker/docker/client"
+
+	"github.com/THUAI-ssast/hiper-backend/web/model"
+
+	"github.com/THUAI-ssast/hiper-backend/worker/mq"
+	"github.com/THUAI-ssast/hiper-backend/worker/repository"
 )
 
-func Match(matchID uint) {
-	// 获取任务所需信息
-
-	// 起容器，执行任务
-
-	// 等待任务完成，获取任务输出，保存与修改相关信息（含 在 match_result 消息队列中发送消息，如果是 公开对局 的话）
+func Match(matchID uint) error {
+	repository.StartMatchTask(matchID)
+	// Get necessary information
 	match, err := model.GetMatchByID(matchID, true)
 	if err != nil {
-		return
+		repository.EndMatchTask(matchID, model.TaskStateSystemError)
+		return err
 	}
-	// 获取对应的赛事信息
-	baseContest, err := model.GetBaseContestByID(match.BaseContestID)
-	if err != nil {
-		return
-	}
-	// 获取对应的build dockerfile
-	game, err := model.GetGameByID(baseContest.GameID)
-	if err != nil {
-		return
-	}
-	gameLogic := game.GameLogic
-	gameLogicBuild := gameLogic.Build
-	dockerfile := gameLogicBuild.Dockerfile
-	data := []byte(dockerfile)
-	dockerfileHash := md5.Sum(data)
-	dockerfileMD5 := fmt.Sprintf("%x", dockerfileHash)
-	gameTag := fmt.Sprintf("game-%d-build:%s", baseContest.GameID, dockerfileMD5)
-
-	// 根据tag获取镜像
-	ctx := context.Background()
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
-	if err != nil {
-		panic(err)
-	}
-
-	images, err := cli.ImageList(ctx, types.ImageListOptions{})
-	if err != nil {
-		panic(err)
-	}
-	imageExist := false // 镜像是否存在
-	for _, image := range images {
-		for _, repoTag := range image.RepoTags {
-			if repoTag == gameTag {
-				imageExist = true
-				break
-			}
-		}
-	}
-
-	if !imageExist {
-		// 创建镜像
-		output := BuildGameLogic(baseContest.GameID)
-		if output != 0 {
-			return
-		}
-	}
-
+	aiIDs := make([]uint, len(match.Ais))
 	for _, ai := range match.Ais {
-		// 获取对应的run dockerfile
-		sdk, err := model.GetSdkByID(ai.SdkID)
+		prepareImage(repository.AiDomain, repository.RunOperation, ai.ID)
+		aiIDs = append(aiIDs, ai.ID)
+	}
+	prepareImage(repository.GameLogicDomain, repository.RunOperation, match.GameID)
+
+	// Create a network for the match
+	networkName := getNetworkName(matchID)
+	_, err = cli.NetworkCreate(ctx, networkName, types.NetworkCreate{})
+	if err != nil {
+		repository.EndMatchTask(matchID, model.TaskStateSystemError)
+		return err
+	}
+
+	// Create a named pipe for game logic to communicate with judger
+	pipePath := getPipePath(matchID)
+	err = syscall.Mkfifo(pipePath, 0666)
+	if err != nil {
+		repository.EndMatchTask(matchID, model.TaskStateSystemError)
+		return err
+	}
+
+	// Run game logic container
+	err = runGameLogicContainer(aiIDs, match, pipePath, networkName, matchID)
+	if err != nil {
+		repository.EndMatchTask(matchID, model.TaskStateSystemError)
+		return err
+	}
+
+	var pipe *os.File
+	defer cleanMatch(matchID, pipe)
+
+	// Listen to the pipe to execute commands from game logic
+	pipe, err = os.Open(pipePath)
+	if err != nil {
+		repository.EndMatchTask(matchID, model.TaskStateSystemError)
+		return err
+	}
+	err = executeCommandsFromGameLogic(pipe, match, aiIDs)
+	if err != nil {
+		repository.EndMatchTask(matchID, model.TaskStateSystemError)
+		return err
+	}
+
+	repository.EndMatchTask(matchID, model.TaskStateFinished)
+	return nil
+}
+
+func runGameLogicContainer(aiIDs []uint, match model.Match, pipePath string, networkName string, matchID uint) error {
+	/* TODO: 限制以下几个方面，以确保安全性：
+	 * CPU、内存占用
+	 * 运行时间
+	 */
+	aiIDsJSON, _ := json.Marshal(aiIDs)
+	gameLogicContainerConfig := &container.Config{
+		Image: getImage(repository.GameLogicDomain, repository.RunOperation, match.GameID),
+		Cmd:   []string{string(aiIDsJSON), match.ExtraInfo},
+	}
+	binds := getBinds(repository.GameLogicDomain, match.GameID)
+	binds = append(binds, fmt.Sprintf("%s:%s", pipePath, "/tmp/pipe"))
+	gameLogicHostConfig := &container.HostConfig{
+		Binds:       binds,
+		AutoRemove:  true,
+		NetworkMode: container.NetworkMode(networkName),
+	}
+	containerName := "game_logic"
+	gameLogicResp, err := cli.ContainerCreate(ctx, gameLogicContainerConfig, gameLogicHostConfig, nil, nil, containerName)
+	if err != nil {
+		return err
+	}
+	if err = cli.ContainerStart(ctx, gameLogicResp.ID, types.ContainerStartOptions{}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func executeCommandsFromGameLogic(pipe *os.File, match model.Match, aiIDs []uint) error {
+	reader := bufio.NewReader(pipe)
+	for {
+		command, err := reader.ReadString('\n')
 		if err != nil {
+			return err
+		}
+
+		components := strings.Split(strings.TrimSpace(command), " ")
+		commandType := components[0]
+		args := components[1:]
+		switch commandType {
+		case "create_player":
+			containerName := args[0]
+			aiIndexInt, _ := strconv.Atoi(args[1])
+			aiIndex := uint(aiIndexInt)
+			createPlayer(containerName, aiIndex, aiIDs, match.ID)
+		case "remove_player":
+			containerName := args[0]
+			removePlayer(containerName)
+		case "end_match":
+			endInfoJSON := args[0]
+			endMatch(endInfoJSON, match)
+			return nil
+		default:
+			continue // ignore unknown commands
+		}
+	}
+}
+
+func createPlayer(containerName string, aiIndex uint, aiIDs []uint, matchID uint) {
+	/* TODO: 限制以下几个方面，以确保安全性：
+		 * CPU、内存占用
+		 * 运行时间
+	     * 日志长度
+	*/
+	aiID := aiIDs[aiIndex]
+	containerConfig := &container.Config{
+		Image: getImage(repository.AiDomain, repository.RunOperation, aiID),
+	}
+	hostConfig := &container.HostConfig{
+		Binds:       getBinds(repository.AiDomain, aiID),
+		AutoRemove:  true,
+		NetworkMode: container.NetworkMode(getNetworkName(matchID)),
+	}
+	resp, err := cli.ContainerCreate(ctx, containerConfig, hostConfig, nil, nil, containerName)
+	if err != nil {
+		log.Println(err)
+	}
+	if err = cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
+		log.Println(err)
+	}
+	go waitToAppendPlayerLog(resp.ID, matchID, aiIndex)
+}
+
+func waitToAppendPlayerLog(containerID string, matchID uint, aiIndex uint) {
+	// Wait for container to exit
+	statusCh, _ := cli.ContainerWait(ctx, containerID, container.WaitConditionNotRunning)
+	// Container has exited
+	<-statusCh
+
+	// Retrieve container logs
+	logOptions := types.ContainerLogsOptions{ShowStderr: true}
+	logsReader, err := cli.ContainerLogs(ctx, containerID, logOptions)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer logsReader.Close()
+	logs, _ := io.ReadAll(logsReader)
+	// Append to corresponding log file
+	logPath := fmt.Sprintf("/var/hiper/matches/%d/player_%d.log", matchID, aiIndex)
+	logFile, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer logFile.Close()
+	header := "====================\n"
+	logs = append([]byte(header), logs...)
+	logFile.Write(logs)
+}
+
+func removePlayer(containerName string) {
+	if err := cli.ContainerStop(ctx, containerName, container.StopOptions{}); err != nil {
+		log.Println(err)
+	}
+}
+
+// endMatch ends a match that finished successfully
+func endMatch(endInfoJSON string, match model.Match) {
+	var endInfo EndInfo
+	if err := json.Unmarshal([]byte(endInfoJSON), &endInfo); err != nil {
+		log.Println(err)
+		return
+	}
+	// Update match
+	model.UpdateMatchByID(match.ID, map[string]interface{}{
+		"scores": endInfo.Scores,
+	})
+	if match.MatchType == model.MatchTypePublic {
+		replayPath := fmt.Sprintf("/var/hiper/matches/%d/replay.json", match.ID)
+		replayFile, err := os.Open(replayPath)
+		if err != nil {
+			log.Println(err)
 			return
 		}
-		runDockerfile := sdk.RunAi.Dockerfile
-		data := []byte(runDockerfile)
-		dockerfileHash := md5.Sum(data)
-		dockerfileMD5 := fmt.Sprintf("%x", dockerfileHash)
-		tag := fmt.Sprintf("sdk-%d-run:%s", ai.SdkID, dockerfileMD5)
-
-		// 根据tag获取镜像
-		ctx := context.Background()
-		cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
-		if err != nil {
-			panic(err)
-		}
-
-		images, err := cli.ImageList(ctx, types.ImageListOptions{})
-		if err != nil {
-			panic(err)
-		}
-		imageExist := false // 镜像是否存在
-		for _, image := range images {
-			for _, repoTag := range image.RepoTags {
-				if repoTag == tag {
-					imageExist = true
-					break
-				}
-			}
-		}
-
-		if !imageExist {
-			// 创建镜像
-			output := buildAI(ai.ID)
-			if output != 0 {
-				return
-			}
-		}
+		defer replayFile.Close()
+		replay, _ := io.ReadAll(replayFile)
+		mq.PublishMatchResult(match.ID, string(replay))
 	}
+}
 
-	// 创建容器
-	// 1. 创建网络
-	// 2. 创建容器
-	// 3. 启动容器
-	// 4. 等待容器结束
-	// 5. 获取容器输出
-	// 6. 删除容器
-	// 7. 删除网络
+type EndInfo struct {
+	Scores []int
+}
 
-	// 1. 创建网络
-	matchNetworkName := fmt.Sprintf("network-%d", matchID)
-	matchNetwork, err := cli.NetworkCreate(ctx, matchNetworkName, types.NetworkCreate{})
+// cleanMatch cleans up all resources used by a match
+func cleanMatch(matchID uint, pipe *os.File) {
+	// Stop all containers in the match network
+	networkName := getNetworkName(matchID)
+	network, err := cli.NetworkInspect(ctx, networkName, types.NetworkInspectOptions{})
 	if err != nil {
-		panic(err)
+		log.Println(err)
+		return
 	}
+	for _, curContainer := range network.Containers {
+		if err := cli.ContainerStop(ctx, curContainer.Name, container.StopOptions{}); err != nil {
+			log.Println(err)
+		}
+	}
+	// Remove network
+	if err := cli.NetworkRemove(ctx, networkName); err != nil {
+		log.Println(err)
+	}
+	// Remove pipe
+	if pipe != nil {
+		pipe.Close()
+		pipePath := getPipePath(matchID)
+		if err := os.Remove(pipePath); err != nil {
+			log.Println(err)
+		}
+	}
+}
 
-	// 2. 创建GAME容器
-	gameContainerName := fmt.Sprintf("game-%d", matchID)
-	gameContainerConfig := &container.Config{
-		Image: gameTag,
-	}
-	gameHostConfig := &container.HostConfig{}
-	gameNetworkingConfig := &network.NetworkingConfig{}
-	gameContainerResp, err := cli.ContainerCreate(ctx, gameContainerConfig, gameHostConfig, gameNetworkingConfig, gameContainerName)
-	if err != nil {
-		panic(err)
-	}
-	if err := cli.NetworkConnect(ctx, matchNetwork.ID, gameContainerResp.ID, nil); err != nil {
-		panic(err)
-	}
-	if err := cli.ContainerStart(ctx, gameContainerResp.ID, types.ContainerStartOptions{}); err != nil {
-		panic(err)
-	}
+func getNetworkName(matchID uint) string {
+	return fmt.Sprintf("match-%d", matchID)
+}
 
-	// 3. 创建AI容器
-	for AiIndex, ai := range match.Ais {
-		aiContainerName := fmt.Sprintf("ai-%d-%d", matchID, AiIndex)
-		//计算tag
-		sdk, err := model.GetSdkByID(ai.SdkID)
-		if err != nil {
-			return
-		}
-		runDockerfile := sdk.RunAi.Dockerfile
-		data := []byte(runDockerfile)
-		dockerfileHash := md5.Sum(data)
-		dockerfileMD5 := fmt.Sprintf("%x", dockerfileHash)
-		tag := fmt.Sprintf("sdk-%d-run:%s", ai.SdkID, dockerfileMD5)
-		aiContainerConfig := &container.Config{
-			Image: tag,
-		}
-		aiHostConfig := &container.HostConfig{}
-		aiNetworkingConfig := &network.NetworkingConfig{}
-		aiContainerResp, err := cli.ContainerCreate(ctx, aiContainerConfig, aiHostConfig, aiNetworkingConfig, aiContainerName)
-		if err != nil {
-			panic(err)
-		}
-		if err := cli.NetworkConnect(ctx, matchNetwork.ID, aiContainerResp.ID, nil); err != nil {
-			panic(err)
-		}
-		if err := cli.ContainerStart(ctx, aiContainerResp.ID, types.ContainerStartOptions{}); err != nil {
-			panic(err)
-		}
-	}
-
-	// 4. 等待容器结束
-	statusCh, errCh := cli.ContainerWait(ctx, gameContainerResp.ID, container.WaitConditionNotRunning)
-	select {
-	case err := <-errCh:
-		if err != nil {
-			panic(err)
-		}
-	case <-statusCh:
-	}
-	// 5. 获取容器输出
-	gameContainerLogs, err := cli.ContainerLogs(ctx, gameContainerResp.ID, types.ContainerLogsOptions{ShowStdout: true})
-	if err != nil {
-		panic(err)
-	}
-	defer gameContainerLogs.Close()
-	gameContainerLogsFile, err := os.Create(fmt.Sprintf("/var/hiper/matches/%d/game.log", matchID))
-	if err != nil {
-		panic(err)
-	}
-	defer gameContainerLogsFile.Close()
-	if _, err := io.Copy(gameContainerLogsFile, gameContainerLogs); err != nil {
-		panic(err)
-	}
-
-	// 6. 删除容器
-	if err := cli.ContainerRemove(ctx, gameContainerResp.ID, types.ContainerRemoveOptions{}); err != nil {
-		panic(err)
-	}
-	for AiIndex, ai := range match.Ais {
-		aiContainerName := fmt.Sprintf("ai-%d-%d", matchID, AiIndex)
-		if err := cli.ContainerRemove(ctx, aiContainerName, types.ContainerRemoveOptions{}); err != nil {
-			panic(err)
-		}
-	}
-
-	// 7. 删除网络
-	if err := cli.NetworkRemove(ctx, matchNetwork.ID); err != nil {
-		panic(err)
-	}
-
-	// 8. 保存与修改相关信息（含 在 match_result 消息队列中发送消息，如果是 公开对局 的话）
-	// TODO: 保存与修改相关信息（含 在 match_result 消息队列中发送消息，如果是 公开对局 的话）
+func getPipePath(matchID uint) string {
+	return fmt.Sprintf("/tmp/match-%d-pipe", matchID)
 }

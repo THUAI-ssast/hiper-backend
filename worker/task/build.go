@@ -1,120 +1,76 @@
 package task
 
 import (
-	"context"
-	"crypto/md5"
 	"fmt"
-	"log"
-	"strconv"
-	"strings"
+	"io"
 
 	"github.com/THUAI-ssast/hiper-backend/web/model"
-
+	"github.com/THUAI-ssast/hiper-backend/worker/repository"
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/client"
+	"github.com/docker/docker/api/types/container"
 )
 
-func Build(values map[string]interface{}) (status int) {
-	idInt, err := strconv.Atoi(values["id"].(string))
+func Build(domain repository.DomainType, id uint) error {
+	dockerfile, err := getDockerfile(domain, repository.BuildOperation, id)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
-	id := uint(idInt)
-	status = 1
-
-	switch values["type"] {
-	case "game_logic":
-		status = buildGameLogic(id)
-	case "ai":
-		status = buildAI(id)
+	if dockerfile == "" {
+		return nil
 	}
-	return
-}
 
-// 获取任务所需信息
-// 起容器，执行任务
-// 等待任务完成，获取任务输出，保存与修改相关信息
+	repository.StartBuildTask(domain, id)
 
-func buildGameLogic(gameID uint) (status int) {
-	// 获取游戏
-	game, err := model.GetGameByID(gameID)
+	err = prepareImage(repository.GameLogicDomain, repository.BuildOperation, id)
 	if err != nil {
-		log.Fatal(err)
+		repository.EndBuildTask(domain, id, model.TaskStateSystemError, err.Error())
+		return err
 	}
-	// 获取游戏逻辑的构建任务
-	gameLogic := game.GameLogic
-	gameLogicBuild := gameLogic.Build
-	// 获取游戏逻辑的构建任务的 Dockerfile
-	dockerfile := gameLogicBuild.Dockerfile
-	data := []byte(dockerfile)
-	dockerfileHash := md5.Sum(data)
-	dockerfileMD5 := fmt.Sprintf("%x", dockerfileHash)
-	tag := fmt.Sprintf("game-%d-build:%s", gameID, dockerfileMD5)
-
-	// 获取游戏逻辑文件路径
-	filePath := fmt.Sprintf("/var/hiper/games/%d/game_logic/gamelogic.zip", gameID)
-	// 替换 Dockerfile 中的游戏逻辑文件路径
-	dockerfile = strings.Replace(dockerfile, "GAME_LOGIC_PATH", filePath, -1)
-	// 创建镜像
-	ctx := context.Background()
-	cli, err := client.NewClientWithOpts(client.FromEnv)
+	/* TODO: 限制以下几个方面，以确保安全性：
+		 * CPU、内存占用
+		 * 运行时间
+	     * 日志长度
+	*/
+	containerConfig := &container.Config{Image: getImage(domain, repository.BuildOperation, id)}
+	hostConfig := &container.HostConfig{
+		Binds:      getBinds(domain, id),
+		AutoRemove: true,
+	}
+	resp, err := cli.ContainerCreate(ctx, containerConfig, hostConfig, nil, nil, "")
 	if err != nil {
-		log.Fatal(err)
+		repository.EndBuildTask(domain, id, model.TaskStateSystemError, err.Error())
+		return err
 	}
-
-	buildContext := strings.NewReader(dockerfile)
-	buildOptions := types.ImageBuildOptions{
-		Dockerfile: "Dockerfile",
-		Tags:       []string{tag},
-	}
-
-	resp, err := cli.ImageBuild(ctx, buildContext, buildOptions)
+	err = cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{})
 	if err != nil {
-		log.Fatal(err)
-		status = 1
-		return
+		repository.EndBuildTask(domain, id, model.TaskStateSystemError, err.Error())
+		return err
 	}
-	defer resp.Body.Close()
-	status = 0
-	return
-}
+	statusCh, _ := cli.ContainerWait(ctx, resp.ID, container.WaitConditionNotRunning)
+	// Container has exited
+	<-statusCh
 
-func buildAI(aiID uint) (status int) {
-	// 获取AI
-	ai, err := model.GetAiByID(aiID, true)
+	// Retrieve the container exit code
+	respInspect, err := cli.ContainerInspect(ctx, resp.ID)
 	if err != nil {
-		log.Fatal(err)
+		repository.EndBuildTask(domain, id, model.TaskStateSystemError, err.Error())
+		return err
 	}
-	// 获取AI的构建任务
-	aiBuild := ai.Sdk.BuildAi
-	// 获取AI的构建任务的 Dockerfile
-	dockerfile := aiBuild.Dockerfile
-	data := []byte(dockerfile)
-	dockerfileHash := md5.Sum(data)
-	dockerfileMD5 := fmt.Sprintf("%x", dockerfileHash)
-	tag := fmt.Sprintf("ai-%d-build:%s", aiID, dockerfileMD5)
-	// 获取AI文件路径
-	filePath := fmt.Sprintf("/var/hiper/ais/%d/ai.zip", aiID)
-	// 替换 Dockerfile 中的 AI 文件路径
-	dockerfile = strings.Replace(dockerfile, "AI_PATH", filePath, -1)
-	// 创建镜像
-	ctx := context.Background()
-	cli, err := client.NewClientWithOpts(client.FromEnv)
+	exitCode := respInspect.State.ExitCode
+	// Retrieve container logs
+	logOptions := types.ContainerLogsOptions{ShowStdout: true, ShowStderr: true}
+	logsReader, err := cli.ContainerLogs(ctx, resp.ID, logOptions)
 	if err != nil {
-		log.Fatal(err)
+		repository.EndBuildTask(domain, id, model.TaskStateSystemError, err.Error())
+		return err
 	}
+	defer logsReader.Close()
+	logs, _ := io.ReadAll(logsReader)
 
-	buildContext := strings.NewReader(dockerfile)
-	buildOptions := types.ImageBuildOptions{
-		Dockerfile: "Dockerfile",
-		Tags:       []string{tag},
+	// Interpret the exit code and update task state accordingly
+	if exitCode != 0 {
+		repository.EndBuildTask(domain, id, model.TaskStateInputError, fmt.Sprintf("Docker container exited with non-zero exit code: %d. Logs:\n%s", exitCode, string(logs)))
 	}
-
-	resp, err := cli.ImageBuild(ctx, buildContext, buildOptions)
-	if err != nil {
-		log.Fatal(err)
-		return 1
-	}
-	defer resp.Body.Close()
-	return 0
+	repository.EndBuildTask(domain, id, model.TaskStateFinished, fmt.Sprintf("Docker container exited successfully. Logs:\n%s", string(logs)))
+	return nil
 }

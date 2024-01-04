@@ -21,10 +21,10 @@ func InitMq() {
 
 // GetTask returns a task from redis stream
 func GetTask() (*redis.XStream, error) {
-	t, err := model.Rdb.XReadGroup(ctx, &redis.XReadGroupArgs{
+	t, err := rdb.XReadGroup(ctx, &redis.XReadGroupArgs{
 		Group:    "worker_group",
 		Consumer: hostname,
-		Streams:  []string{"build", "manual_match", "auto_match"},
+		Streams:  []string{"build", "manual_match", "auto_match", ">"},
 		Count:    1,
 		Block:    0,
 	}).Result()
@@ -40,5 +40,16 @@ func GetTask() (*redis.XStream, error) {
 // AckTask acknowledges a task
 func AckTask(stream *redis.XStream) error {
 	_, err := rdb.XAck(ctx, stream.Stream, "worker_group", stream.Messages[0].ID).Result()
+	return err
+}
+
+func PublishMatchResult(matchID uint, replay string) error {
+	_, err := rdb.XAdd(ctx, &redis.XAddArgs{
+		Stream: "match_result",
+		Values: map[string]interface{}{
+			"id":     matchID,
+			"replay": replay,
+		},
+	}).Result()
 	return err
 }

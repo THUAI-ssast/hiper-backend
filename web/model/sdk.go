@@ -25,6 +25,10 @@ func (s *Sdk) Create() error {
 
 // CRUD: Update
 
+func UpdateSdkByID(id uint, updates map[string]interface{}) error {
+	return db.Model(&Sdk{}).Where("id = ?", id).Updates(updates).Error
+}
+
 func (s *Sdk) Update(updates map[string]interface{}) error {
 	return db.Model(s).Updates(updates).Error
 }

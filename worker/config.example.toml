@@ -1,0 +1,14 @@
+# environment variables first, then config file
+
+[db]
+host = "db"
+port = "5432"
+dbname = "test"
+user = "hiper"
+password = "hiper"
+
+[redis]
+host = "redis"
+port = "6379"
+password = ""
+db = "0"
