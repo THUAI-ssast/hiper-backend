@@ -69,7 +69,7 @@ func Match(matchID uint) error {
 	}
 	err = executeCommandsFromGameLogic(pipe, match, aiIDs)
 	if err != nil {
-		repository.EndMatchTask(matchID, model.TaskStateSystemError)
+		repository.EndMatchTask(matchID, model.TaskStateInputError)
 		return err
 	}
 
@@ -127,8 +127,7 @@ func executeCommandsFromGameLogic(pipe *os.File, match model.Match, aiIDs []uint
 			removePlayer(containerName)
 		case "end_match":
 			endInfoJSON := args[0]
-			endMatch(endInfoJSON, match)
-			return nil
+			return endMatch(endInfoJSON, match)
 		default:
 			continue // ignore unknown commands
 		}
@@ -195,11 +194,11 @@ func removePlayer(containerName string) {
 }
 
 // endMatch ends a match that finished successfully
-func endMatch(endInfoJSON string, match model.Match) {
+func endMatch(endInfoJSON string, match model.Match) error {
 	var endInfo EndInfo
 	if err := json.Unmarshal([]byte(endInfoJSON), &endInfo); err != nil {
 		log.Println(err)
-		return
+		return err
 	}
 	// Update match
 	model.UpdateMatchByID(match.ID, map[string]interface{}{
@@ -207,19 +206,22 @@ func endMatch(endInfoJSON string, match model.Match) {
 	})
 	if match.MatchType == model.MatchTypePublic {
 		replayPath := fmt.Sprintf("/var/hiper/matches/%d/replay.json", match.ID)
-		replayFile, err := os.Open(replayPath)
+		replayFile, err := os.OpenFile(replayPath, os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			log.Println(err)
-			return
+			return err
 		}
 		defer replayFile.Close()
-		replay, _ := io.ReadAll(replayFile)
+		replay, _ := json.Marshal(endInfo.Replay)
+		replayFile.Write(replay)
 		mq.PublishMatchResult(match.ID, string(replay))
 	}
+	return nil
 }
 
 type EndInfo struct {
 	Scores []int
+	Replay interface{}
 }
 
 // cleanMatch cleans up all resources used by a match
