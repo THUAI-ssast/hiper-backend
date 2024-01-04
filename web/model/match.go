@@ -18,7 +18,7 @@ type Match struct {
 
 	// Customized Info string passed to game logic. JSON format.
 	ExtraInfo string
-	MatchType MatchType
+	MatchType MatchType `gorm:"default: public"`
 
 	// snapshot fields
 	GameID uint
