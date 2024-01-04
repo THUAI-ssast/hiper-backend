@@ -19,14 +19,14 @@ var (
 )
 
 func InitMq() {
-	go ListenMsgForMatchFinished(Ctx_callback, "match_result")
+	Startup()
+	go ListenMsgForMatchFinished()
 }
 
 func InitGameMq(baseContestID uint, vm *goja.Runtime) {
 	SetCreateMatch(baseContestID, vm)
 	SetGetContestantsByRanking(baseContestID, vm)
 	SetUpdateContestant(baseContestID, vm)
-	SendBuildGameLogicMsg(Ctx_callback, baseContestID)
 }
 
 func SetGoFuncForJS(baseContestID uint, funcName string, goFunc func(goja.FunctionCall) goja.Value, vm *goja.Runtime) error {

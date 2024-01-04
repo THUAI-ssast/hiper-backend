@@ -111,7 +111,7 @@ func AddMatch(playerIDs []uint, baseContestID uint, tag string, extraInfo map[st
 	if err != nil {
 		return 0, err
 	}
-	SendRunMatchMsg(model.Ctx, match.ID)
+	SendRunAutoMatchMsg(model.Ctx, match.ID)
 	return match.ID, nil
 }
 

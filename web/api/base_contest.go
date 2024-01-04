@@ -274,7 +274,6 @@ func addSdk(c *gin.Context) {
 		return
 	}
 
-	mq.SendBuildSdkMsg(model.Ctx, sdk.ID)
 	c.JSON(200, gin.H{})
 	c.Abort()
 }
