@@ -3,36 +3,57 @@ package mq
 import (
 	"context"
 	"fmt"
+
+	"github.com/THUAI-ssast/hiper-backend/web/model"
+	"github.com/redis/go-redis/v9"
 )
 
 func SendBuildAIMsg(ctx context.Context, aiID uint) error {
-	return sendMsg(ctx, &Msg{
-		Topic: "Build",
-		Body:  []byte(fmt.Sprintf("%d", aiID)),
-		Type:  "AI",
-	})
+	rdb := model.Rdb
+
+	_, err := rdb.XAdd(ctx, &redis.XAddArgs{
+		Stream: "build",
+		Values: map[string]interface{}{
+			"type": "ai",
+			"id":   fmt.Sprintf("%d", aiID),
+		},
+	}).Result()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func SendBuildGameLogicMsg(ctx context.Context, gameID uint) error {
-	return sendMsg(ctx, &Msg{
-		Topic: "Build",
-		Body:  []byte(fmt.Sprintf("%d", gameID)),
-		Type:  "Game",
-	})
+	rdb := model.Rdb
+
+	_, err := rdb.XAdd(ctx, &redis.XAddArgs{
+		Stream: "build",
+		Values: map[string]interface{}{
+			"type": "game_logic",
+			"id":   fmt.Sprintf("%d", gameID),
+		},
+	}).Result()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func SendBuildSdkMsg(ctx context.Context, sdkID uint) error {
-	return sendMsg(ctx, &Msg{
-		Topic: "Build",
-		Body:  []byte(fmt.Sprintf("%d", sdkID)),
-		Type:  "SDK",
-	})
-}
+func SendRunAutoMatchMsg(ctx context.Context, matchID uint) error {
+	rdb := model.Rdb
 
-func SendRunMatchMsg(ctx context.Context, matchID uint) error {
-	return sendMsg(ctx, &Msg{
-		Topic: "Run",
-		Body:  []byte(fmt.Sprintf("%d", matchID)),
-		Type:  "Match",
-	})
+	_, err := rdb.XAdd(ctx, &redis.XAddArgs{
+		Stream: "auto_match",
+		Values: map[string]interface{}{
+			"id": fmt.Sprintf("%d", matchID),
+		},
+	}).Result()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

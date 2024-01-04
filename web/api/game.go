@@ -11,7 +11,6 @@ import (
 	"github.com/THUAI-ssast/hiper-backend/web/basecontest"
 	"github.com/THUAI-ssast/hiper-backend/web/game"
 	"github.com/THUAI-ssast/hiper-backend/web/model"
-	"github.com/THUAI-ssast/hiper-backend/web/mq"
 )
 
 func createGame(c *gin.Context) {
@@ -97,6 +96,8 @@ func forkGame(c *gin.Context) {
 	}
 	tempGame, err := model.GetGameByID(uint(gameID))
 	tempGame.ID = 0
+	tempGame.BaseContest.ID = 0
+	tempGame.BaseContest.GameID = 0
 	if err != nil {
 		c.JSON(422, gin.H{"error": ErrorFor422{
 			Code:  Invalid,
@@ -107,6 +108,11 @@ func forkGame(c *gin.Context) {
 	}
 	if input.NewAdminUsername == "" {
 		err = tempGame.Create([]uint{userID})
+		if err != nil {
+			c.JSON(500, gin.H{"error": "failed to create game"})
+			c.Abort()
+			return
+		}
 	} else {
 		newAdmin, err := model.GetUserByUsername(input.NewAdminUsername)
 		if err != nil {
@@ -205,7 +211,6 @@ func updateGameLogic(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	mq.InitGameMq(gameID)
 	game.RetGameSettings(c)
 }
 

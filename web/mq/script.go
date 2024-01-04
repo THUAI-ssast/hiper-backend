@@ -1,33 +1,21 @@
 package mq
 
 import (
-	"github.com/dop251/goja"
-
 	"github.com/THUAI-ssast/hiper-backend/web/model"
+	"github.com/dop251/goja"
+	"github.com/dop251/goja_nodejs/eventloop"
 )
 
 func CreateRuntimeWithJSFile(baseContestID uint) error {
-	// 打开 JavaScript 文件
-	baseContest, err := model.GetBaseContestByID(baseContestID)
-	if err != nil {
-		return err
-	}
-	script := baseContest.Script
 
-	// 创建一个新的 goja 运行时
-	vm := goja.New()
-
-	// 执行 JavaScript 代码
-	_, err = vm.RunString(script)
-	if err != nil {
-		return err
-	}
+	// 创建一个新的 eventloop
+	loop := eventloop.NewEventLoop()
 
 	// 添加到全局 map 中
-	mutex.Lock()
-	baseContestIDToRuntime[baseContestID] = vm
-	runtimeToBaseContestID[vm] = baseContestID
-	mutex.Unlock()
+	Mutex.Lock()
+	BaseContestIDToRuntime[baseContestID] = loop
+	RuntimeToBaseContestID[loop] = baseContestID
+	Mutex.Unlock()
 
 	return nil
 }
@@ -36,9 +24,9 @@ func CallOnAIAssigned(contestant model.Contestant) error {
 	baseContestID := contestant.BaseContestID
 
 	// 查找 map 中对应的 runtime
-	mutex.Lock()
-	vm, exists := baseContestIDToRuntime[baseContestID]
-	mutex.Unlock()
+	Mutex.Lock()
+	loop, exists := BaseContestIDToRuntime[baseContestID]
+	Mutex.Unlock()
 
 	// 如果没有找到，创建一个新的 runtime
 	if !exists {
@@ -48,13 +36,13 @@ func CallOnAIAssigned(contestant model.Contestant) error {
 		}
 
 		// 再次查找 runtime
-		mutex.Lock()
-		vm = baseContestIDToRuntime[baseContestID]
-		mutex.Unlock()
+		Mutex.Lock()
+		loop = BaseContestIDToRuntime[baseContestID]
+		Mutex.Unlock()
 	}
 
 	// 调用 onAiAssigned 函数
-	_, err := CallJSFunction(vm, "onAiAssigned", contestant)
+	_, err := CallJSFunction(loop, "onAiAssigned", contestant)
 	if err != nil {
 		return err
 	}
@@ -73,9 +61,9 @@ func CallOnMatchFinished(matchID uint, replay string) error {
 	baseContestID := match.BaseContestID
 
 	// 查找 map 中对应的 runtime
-	mutex.Lock()
-	vm, exists := baseContestIDToRuntime[baseContestID]
-	mutex.Unlock()
+	Mutex.Lock()
+	loop, exists := BaseContestIDToRuntime[baseContestID]
+	Mutex.Unlock()
 
 	// 如果没有找到，创建一个新的 runtime
 	if !exists {
@@ -85,14 +73,26 @@ func CallOnMatchFinished(matchID uint, replay string) error {
 		}
 
 		// 再次查找 runtime
-		mutex.Lock()
-		vm = baseContestIDToRuntime[baseContestID]
-		mutex.Unlock()
+		Mutex.Lock()
+		loop = BaseContestIDToRuntime[baseContestID]
+		Mutex.Unlock()
+	}
+
+	var players []map[string]interface{}
+
+	for i, ai := range match.Ais {
+		contestant, _ := model.GetContestant(map[string]interface{}{
+			"base_contest_id": baseContestID,
+			"assigned_ai_id":  ai.ID,
+		}, nil)
+		players = append(players, map[string]interface{}{
+			"contestant": contestant,
+			"score":      match.Scores[i],
+		})
 	}
 
 	// 调用 onMatchFinished 函数
-	// TODO: 与文档不符，注意确认内部字段；修改文档或修改代码
-	_, err = CallJSFunction(vm, "onMatchFinished", match.Ais, match.Tag, replay)
+	_, err = CallJSFunction(loop, "onMatchFinished", players, match.Tag, replay)
 	if err != nil {
 		return err
 	}
@@ -100,7 +100,7 @@ func CallOnMatchFinished(matchID uint, replay string) error {
 	return nil
 }
 
-func SetCreateMatch(baseContestID uint) error {
+func SetCreateMatch(baseContestID uint, vm *goja.Runtime) error {
 	err := SetGoFuncForJS(baseContestID, "createMatch", func(call goja.FunctionCall) goja.Value {
 		// 获取 contestants 参数
 		contestantsVal := call.Argument(0)
@@ -113,7 +113,7 @@ func SetCreateMatch(baseContestID uint) error {
 		optionsVal := call.Argument(1)
 		options, ok := optionsVal.Export().(map[string]interface{})
 		if !ok {
-			panic("options must be an object")
+			options = make(map[string]interface{})
 		}
 
 		// 调用 createMatch 函数
@@ -122,9 +122,8 @@ func SetCreateMatch(baseContestID uint) error {
 			panic(err)
 		}
 
-		// 返回 undefined
 		return goja.Undefined()
-	})
+	}, vm)
 	if err != nil {
 		return err
 	}
@@ -132,13 +131,13 @@ func SetCreateMatch(baseContestID uint) error {
 	return nil
 }
 
-func SetGetContestantsByRanking(baseContestID uint) error {
+func SetGetContestantsByRanking(baseContestID uint, vm *goja.Runtime) error {
 	err := SetGoFuncForJS(baseContestID, "getContestantsByRanking", func(call goja.FunctionCall) goja.Value {
 		// 获取 filter 参数
 		filterVal := call.Argument(0)
 		filter, ok := filterVal.Export().(string)
 		if !ok {
-			panic("filter must be a string")
+			filter = "survived"
 		}
 
 		// 调用 getContestantsByRanking 函数
@@ -147,14 +146,24 @@ func SetGetContestantsByRanking(baseContestID uint) error {
 			panic(err)
 		}
 
-		vm := baseContestIDToRuntime[baseContestID]
+		contestantsjs := make([]interface{}, 0, len(contestants))
+		for _, contestant := range contestants {
+			contestantsjs = append(contestantsjs, map[string]interface{}{
+				"username":           contestant.User.Username,
+				"assignedAiId":       contestant.AssignedAiID,
+				"points":             contestant.Points,
+				"performance":        contestant.Performance,
+				"assignAiEnabled":    contestant.Permissions.AssignAiEnabled,
+				"publicMatchEnabled": contestant.Permissions.PublicMatchEnabled,
+			})
+		}
 
-		// 将 contestants 转换为 goja.Value
-		contestantsVal := vm.ToValue(contestants)
+		// 创建一个新的 JavaScript 数组
+		contestantsVal := vm.ToValue(contestantsjs)
 
 		// 返回 contestantsVal
 		return contestantsVal
-	})
+	}, vm)
 	if err != nil {
 		return err
 	}
@@ -162,7 +171,7 @@ func SetGetContestantsByRanking(baseContestID uint) error {
 	return nil
 }
 
-func SetUpdateContestant(baseContestID uint) error {
+func SetUpdateContestant(baseContestID uint, vm *goja.Runtime) error {
 	err := SetGoFuncForJS(baseContestID, "updateContestant", func(call goja.FunctionCall) goja.Value {
 		// 获取 contestant 参数
 		contestantVal := call.Argument(0)
@@ -186,7 +195,7 @@ func SetUpdateContestant(baseContestID uint) error {
 
 		// 返回 undefined
 		return goja.Undefined()
-	})
+	}, vm)
 	if err != nil {
 		return err
 	}

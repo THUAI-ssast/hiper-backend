@@ -166,6 +166,7 @@ func updateGameScript(c *gin.Context) {
 		c.Abort()
 		return
 	}
+	go mq.InitGameMqAndRunScript(gameID)
 	c.JSON(200, gin.H{})
 	c.Abort()
 }
@@ -273,7 +274,6 @@ func addSdk(c *gin.Context) {
 		return
 	}
 
-	mq.SendBuildSdkMsg(model.Ctx, sdk.ID)
 	c.JSON(200, gin.H{})
 	c.Abort()
 }
@@ -563,6 +563,7 @@ func getAis(c *gin.Context) {
 			return
 		}
 		queryParams.Filter["user_id"] = user.ID
+		queryParams.Filter["base_contest_id"] = c.Param("id")
 	}
 
 	ais, _, err := model.GetAis(queryParams, true)
@@ -573,12 +574,17 @@ func getAis(c *gin.Context) {
 
 	var aiList []gin.H
 	for _, ai := range ais {
+		usr, err := model.GetUserByID(ai.UserID)
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Internal Server Error"})
+			return
+		}
 		aiData := gin.H{
 			"id":     ai.ID,
 			"sdk":    map[string]interface{}{"id": ai.SdkID, "name": ai.Sdk.Name},
 			"note":   ai.Note,
 			"status": basecontest.ConvertStruct(ai.Status),
-			"user":   basecontest.ConvertStruct(ai.User),
+			"user":   map[string]interface{}{"avater_url": usr.AvatarURL, "username": usr.Username, "nickname": usr.Nickname},
 			"time":   ai.CreatedAt,
 		}
 		aiList = append(aiList, aiData)
@@ -669,6 +675,7 @@ func commitAi(c *gin.Context) {
 	}
 
 	ai := model.Ai{}
+	ai.Status.State = model.TaskStateFinished
 	ai.BaseContestID = uint(gameID)
 	userid := c.MustGet("userID").(int)
 	ai.UserID = uint(userid)
@@ -893,12 +900,29 @@ func getContestants(c *gin.Context) {
 		aiid := contestant.AssignedAiID
 		ai, err := model.GetAiByID(uint(aiid), true)
 		if err != nil {
-			c.JSON(400, gin.H{})
-			return
+			ai.User.AvatarURL = user.AvatarURL
+			ai.User.Username = user.Username
+			ai.User.Nickname = user.Nickname
 		}
+		sdk, _ := model.GetSdkByID(ai.SdkID)
 
 		contestantData := gin.H{
-			"assigned_ai": basecontest.ConvertStruct(ai),
+			"assigned_ai": map[string]interface{}{
+				"id": ai.ID,
+				"sdk": map[string]interface{}{
+					"id":   ai.SdkID,
+					"name": sdk.Name,
+				},
+				"note": ai.Note,
+				"status": map[string]interface{}{
+					"state": ai.Status.State,
+				},
+				"user": map[string]interface{}{
+					"avatar_url": user.AvatarURL,
+					"username":   user.Username,
+					"nickname":   user.Nickname,
+				},
+			},
 			"performance": contestant.Performance,
 			"permissions": basecontest.ConvertStruct(contestant.Permissions),
 			"points":      contestant.Points,
@@ -921,6 +945,22 @@ func assignAi(c *gin.Context) {
 		c.JSON(400, gin.H{})
 		return
 	}
+	userID := c.MustGet("userID").(int)
+
+	if baseContest.GameID == baseContest.ID {
+		// 更新 Contestant
+		contestant := model.Contestant{
+			BaseContestID: baseContest.ID,
+			UserID:        uint(userID),
+		}
+
+		err = contestant.Create()
+		if err != nil {
+			c.JSON(500, gin.H{"error": "failed to register Contest"})
+			c.Abort()
+			return
+		}
+	}
 
 	preloads := []model.PreloadQuery{
 		{
@@ -932,7 +972,6 @@ func assignAi(c *gin.Context) {
 			Columns: []string{},
 		},
 	}
-	userID := c.MustGet("userID").(int)
 	contestant, err := baseContest.GetContestantByUserID(uint(userID), preloads)
 	if err != nil {
 		c.JSON(400, gin.H{})
@@ -1060,7 +1099,7 @@ func getMatches(c *gin.Context) {
 		return
 	}
 
-	matches, count, err := baseContest.GetMatches(queryParams, true)
+	matches, _, err := baseContest.GetMatches(queryParams, true)
 	if err != nil {
 		c.JSON(404, gin.H{})
 		return
@@ -1068,15 +1107,42 @@ func getMatches(c *gin.Context) {
 
 	var matchList []map[string]interface{}
 	for _, match := range matches {
+		var players []map[string]interface{}
+		for i, player := range match.Ais {
+			ai, _ := model.GetAiByID(player.ID, true)
+			userid := ai.UserID
+			user, _ := model.GetUserByID(userid)
+			playerData := map[string]interface{}{
+				"ai": map[string]interface{}{
+					"id": player.ID,
+					"sdk": map[string]interface{}{
+						"id":   ai.SdkID,
+						"name": ai.Sdk.Name,
+					},
+				},
+				"score": match.Scores[i],
+				"user": map[string]interface{}{
+					"avatar_url": user.AvatarURL,
+					"username":   user.Username,
+					"nickname":   user.Nickname,
+				},
+			}
+			players = append(players, playerData)
+		}
+
 		matchData := map[string]interface{}{
-			"id":  match.ID,
-			"tag": match.Tag,
-			// TODO: 与文档不符，注意确认内部字段；修改文档或修改代码
-			"players": match.Ais,
+			"id":      match.ID,
+			"tag":     match.Tag,
+			"players": players,
 			"state":   match.State,
 			"time":    match.CreatedAt,
 		}
 		matchList = append(matchList, matchData)
+	}
+	count, err := model.GetMatchNumByBaseContestID(baseContest.ID)
+	if err != nil {
+		c.JSON(404, gin.H{})
+		return
 	}
 
 	response := map[string]interface{}{
@@ -1087,6 +1153,12 @@ func getMatches(c *gin.Context) {
 }
 
 func getMatch(c *gin.Context) {
+	userID := c.MustGet("userID").(int)
+	user, err := model.GetUserByID(uint(userID))
+	if err != nil {
+		c.JSON(400, gin.H{"error": "User not found"})
+		return
+	}
 	inmatchID := c.Param("match_id")
 	matchID, _ := strconv.Atoi(inmatchID)
 
@@ -1129,16 +1201,36 @@ func getMatch(c *gin.Context) {
 		fileContent = ""
 	}
 
+	var score int
+	var aiid uint
+	for i, ai := range aimMatch.Ais {
+		if ai.UserID == user.ID {
+			aiid = ai.ID
+			score = aimMatch.Scores[i]
+		}
+	}
+
+	playerData := map[string]interface{}{
+		"ai": map[string]interface{}{
+			"id": aiid,
+		},
+		"score": score,
+		"user": map[string]interface{}{
+			"avatar_url": user.AvatarURL,
+			"username":   user.Username,
+			"nickname":   user.Nickname,
+		},
+	}
+
 	c.JSON(200, gin.H{
 		"id":      aimMatch.ID,
 		"tag":     aimMatch.Tag,
 		"state":   aimMatch.State,
 		"time":    aimMatch.CreatedAt,
-		"players": aimMatch.Ais,
+		"players": playerData,
 		"replay":  fileContent,
 	})
 }
-
 func getSdks(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {

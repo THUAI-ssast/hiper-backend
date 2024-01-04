@@ -80,6 +80,12 @@ func GetMatches(query QueryParams, preload bool) (matches []Match, count int64, 
 	return matches, count, nil
 }
 
+func GetMatchNumByBaseContestID(baseContestID uint) (uint, error) {
+	var count int64
+	err := db.Model(&Match{}).Where("base_contest_id = ?", baseContestID).Count(&count).Error
+	return uint(count), err
+}
+
 // If preload is true, the following fields will be preloaded:
 // Ais, Ais.Usergi
 func GetMatchByID(id uint, preload bool) (match Match, err error) {
